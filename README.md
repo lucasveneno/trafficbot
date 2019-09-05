@@ -24,6 +24,8 @@ https://www.npmjs.com/package/nightmare
 
 DEBUG_FD=3 DEBUG=nightmare*,electron* node my-script.js 3>log.txt
 
-crontab
+Crontab
 
-* * * * * cd /home/node_modules/nightmare/ && xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony queridin.$
+```bash
+* * * * * cd /home/node_modules/nightmare/ && xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony queridin.js
+```
