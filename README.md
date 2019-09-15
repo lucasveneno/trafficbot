@@ -76,7 +76,20 @@ Crontab
 * * * * * cd /home/node_modules/nightmare/ && xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony queridin.js
 ```
 
+Environment Variables
+-----
+ * `url` - URL for navigation.
+   (Default: http://google.com)
+ * `proxy` - Boolean, whatever to run insance of privoxy in front of haproxy.
+ * `port` - Integer, port for proxy. (Default: 8080)
+ * `user` and `pass` - BasicAuth config for proxy.
+   (Default: `lucasveneno` in both variables)
+ * `windows` - Integer, number of Veneno Traffic Bots instances to run. (Default: 1)
+ * `time` - Integer, MaxCircuitDirtiness parameter value in
+   seconds. (Default: 10 minutes)
 
-DEBUG_FD=3 DEBUG=nightmare*,electron* node index.js --url https://google.com/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno 3>log.txt
 
-DEBUG=nightmare*,electron* node index.js --url https://google.com/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno 3>log.txt
+
+
+
+DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno --windows 3 3>log.txt

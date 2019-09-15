@@ -1,32 +1,34 @@
-const trafficBot = async id => {
+const minimist = require('./node_modules/minimist');
+const platform = require('./node_modules/platform');
+const nightmare = require('./node_modules/nightmare');
+
+let args = minimist(process.argv.slice(2), {
+	alias: {
+		ur : 'url',
+		px : 'proxy',
+		pt : 'port',
+		us : 'user',
+		ps : 'pass',
+		ws : 'windows'
+	},
+	default: {
+		url : 'https://iphub.info/',
+		proxy : '45.77.76.143',
+		port : '8080',
+		user: 'lucas',
+		pass: 'veneno',
+		windows: '1' // Total of windows to be opened
+	}
+});
+
+// console.log('args:', args);
+
+const venenoTrafficBot = async id => {
 	'use strict';
 
 	Array.prototype.randomElement = function () {
 		return this[Math.floor(Math.random() * this.length)]
-	}
-
-	const minimist = require('./node_modules/minimist');
-	const platform = require('./node_modules/platform');
-	const nightmare = require('./node_modules/nightmare');
-
-	let args = minimist(process.argv.slice(2), {
-		alias: {
-			ur : 'url',
-			px : 'proxy',
-			pt : 'port',
-			us : 'user',
-			ps : 'pass'
-		},
-		default: {
-			url : 'https://iphub.info/',
-			proxy : '45.77.76.143',
-			port : '8080',
-			user: 'lucas',
-			pass: 'veneno'
-		}
-	});
-
-	// console.log('args:', args);
+	}	
 
 	let url = args.url;
 	let proxy = args.proxy + ':' + args.port;
@@ -265,11 +267,9 @@ const trafficBot = async id => {
 	}
 }
 
-for (var i = 0; i < 1; i++) {
+for (var i = 0; i < args.windows; i++) {
 
-	trafficBot(i)
-	.then(a => console.dir(a))
-	.catch(e => console.error(e));
+	venenoTrafficBot(i).then(a => console.dir(a)).catch(e => console.error(e));
 
 	console.log('#' + i);
 }
