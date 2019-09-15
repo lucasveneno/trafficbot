@@ -6,9 +6,9 @@ This script generates traffic for websites
 * Ubuntu 18.04 64-bit operating system
 * A user account with sudo privileges
 * Command line / terminal (CTRL-ALT-T or Applications menu > Accessories > Terminal)
+* NodeJS
 * Docker software repositories (optional)
 
-# Install Docker on Ubuntu Using Default Repositories
 ## Step 1: Update Software Repositories
 
 As usual, it’s a good idea to update the local database of software to make sure you’ve got access to the latest revisions.
@@ -21,7 +21,14 @@ $ sudo apt-get update
 
 Allow the operation to complete.
 
-## Step 2: Install Docker
+## Step 2: Install NodeJS
+```bash
+$ sudo apt install nodejs
+```
+
+# Install Docker on Ubuntu Using Default Repositories
+
+## Step 3: Install Docker
 
 To install Docker on Ubuntu, in the terminal window enter the command:
 
