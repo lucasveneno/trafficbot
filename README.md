@@ -1,4 +1,4 @@
-## VENENO TRAFFIC BOT (With a simple rotating TOR pool proxy server)
+## VENENO TRAFFIC BOT (With a simple rotating TOR Proxy Server)
 This script generates traffic for websites
 
 ## Prerequisites
