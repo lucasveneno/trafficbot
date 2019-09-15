@@ -1,4 +1,4 @@
-# VENENO - Traffic Bot
+# Veneno Traffic Bot
 This script generates traffic for websites
 
 # Prerequisites
@@ -8,7 +8,7 @@ This script generates traffic for websites
 * Command line / terminal (CTRL-ALT-T or Applications menu > Accessories > Terminal)
 * Docker software repositories (optional)
 
-#Install Docker on Ubuntu Using Default Repositories
+# Install Docker on Ubuntu Using Default Repositories
 ## Step 1: Update Software Repositories
 
 As usual, it’s a good idea to update the local database of software to make sure you’ve got access to the latest revisions.
