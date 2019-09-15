@@ -8,8 +8,6 @@ This script generates traffic for websites
 > Command line / terminal (CTRL-ALT-T or Applications menu > Accessories > Terminal)
 > Docker software repositories (optional)
 
-
-
 First of all we gonna create a proxy server
 
 ```bash
