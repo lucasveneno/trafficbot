@@ -1,6 +1,10 @@
 const trafficBot = async id => {
 	'use strict';
 
+	Array.prototype.randomElement = function () {
+		return this[Math.floor(Math.random() * this.length)]
+	}
+
 	const minimist = require('./node_modules/minimist');
 	var Nightmare = require('./node_modules/nightmare');
 
@@ -27,6 +31,8 @@ const trafficBot = async id => {
 	let proxy = args.proxy + ':' + args.port;
 	let user =  args.user;
 	let pass = args.pass;
+	let browsers = ['android-browser','chrome','firefox','internet-explorer','opera','safari'];
+	let browser = browsers.randomElement(), myScreenArray;
 
 	// print process.argv
 	// process.argv.forEach(function (val, index, array) { 	console.log(index + ': ' + val);  });
@@ -35,6 +41,14 @@ const trafficBot = async id => {
 	// var proxies = ['139.59.195.227:8118','5.189.190.192:8880','167.71.202.105:8118'];
 	// + port[Math.floor(Math.random() * (+ (port.length - 1) - + 0)) + + 0];
 
+	if(browser == 'android-browser'){
+		myScreenArray = [[240,320],[320,480],[480,800], [600,1024], [720,1280], [800,1280]];
+	}else{
+		myScreenArray = [[640,480],[800,600], [1024,768], [1152,864], [1280,1024], [1600,1200]];
+	}
+	
+	let myRandomScreenElement = myScreenArray.randomElement();
+	
 	const proxyNightmare = Nightmare({
 		executionTimeout: 1000000, // in ms
 		waitTimeout: 1000000, // in ms		
@@ -42,14 +56,10 @@ const trafficBot = async id => {
 			'proxy-server': proxy, // set the proxy server here ...	
 			'ignore-certificate-errors': true	
 		},
-		width: 1024,
-        height: 768,
+		width: myRandomScreenElement[0],
+		height: myRandomScreenElement[1],
 		show: true
 	});
-
-	let browsers = ['android-browser','chrome','firefox','internet-explorer','opera','safari'];
-	let totalBrowsers = Object.keys(browsers).length -1;
-	let browser = browsers[Math.floor(Math.random() * (+totalBrowsers - + 0)) + + 0];
 
 	let userAgentObj = require("./useragent/"+browser+".json");
 	let obj = JSON.parse(JSON.stringify(userAgentObj));
@@ -79,6 +89,9 @@ const trafficBot = async id => {
 	console.log("Proxy: ", proxy);
 	console.log("Browser: ", browser);
 	console.log('url:', url);
+	console.log("Width:", myRandomScreenElement[0]);
+	console.log("height:", myRandomScreenElement[1]);
+
 
 	// Go
 	try {
