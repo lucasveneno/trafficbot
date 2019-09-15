@@ -1,5 +1,5 @@
 ## VENENO TRAFFIC BOT (With a simple rotating Tor Proxy Server)
-This script generates traffic for websites using a Tor pool proxy or any proxy server for which you desire
+This script generates traffic for websites using a Tor Proxy Pool or any proxy server for which you desire
 
 ## Prerequisites
 
