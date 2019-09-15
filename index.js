@@ -6,6 +6,7 @@ const trafficBot = async id => {
 	}
 
 	const minimist = require('./node_modules/minimist');
+	const platform = require('./node_modules/platform');
 	var Nightmare = require('./node_modules/nightmare');
 
 	let args = minimist(process.argv.slice(2), {
@@ -33,7 +34,19 @@ const trafficBot = async id => {
 	let pass = args.pass;
 	let browsers = ['android-browser','chrome','firefox','internet-explorer','opera','safari'];
 	let browser = browsers.randomElement(), myScreenArray;
+	let userAgentObj = require("./useragent/"+browser+".json");
+	let obj = JSON.parse(JSON.stringify(userAgentObj));
+	let ua = obj.randomElement().ua;
 
+	let info = platform.parse(ua); // Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7.2; en; rv:2.0) Gecko/20100101 Firefox/4.0 Opera 11.52
+	// info.name; // 'Opera'
+	// info.version; // '11.52'
+	// info.layout; // 'Presto'
+	// info.os; // 'Mac OS X 10.7.2'
+	// info.description; // 'Opera 11.52 (identifying as Firefox 4.0) on Mac OS X 10.7.2'
+	let osFamily = info.os.family;
+
+	console.log(info.layout);
 	// print process.argv
 	// process.argv.forEach(function (val, index, array) { 	console.log(index + ': ' + val);  });
 
@@ -41,10 +54,12 @@ const trafficBot = async id => {
 	// var proxies = ['139.59.195.227:8118','5.189.190.192:8880','167.71.202.105:8118'];
 	// + port[Math.floor(Math.random() * (+ (port.length - 1) - + 0)) + + 0];
 
-	if(browser == 'android-browser'){
+	if(osFamily == 'Android'){
 		myScreenArray = [[240,320],[320,480],[480,800], [600,1024], [720,1280], [800,1280]];
+	}else if(osFamily == 'iOS'){
+		myScreenArray = [[375,812],[414,736],[375,667], [414,736], [320,568], [1024,1366]];
 	}else{
-		myScreenArray = [[640,480],[800,600], [1024,768], [1152,864], [1280,1024], [1600,1200]];
+		myScreenArray = [[640,480],[800,600], [1024,768], [1152,864], [1280,1024], [1366,768],[1600,1200]];
 	}
 	
 	let myRandomScreenElement = myScreenArray.randomElement();
@@ -61,13 +76,11 @@ const trafficBot = async id => {
 		show: true
 	});
 
-	let userAgentObj = require("./useragent/"+browser+".json");
-	let obj = JSON.parse(JSON.stringify(userAgentObj));
+	
 
 	let min = 0; 
 	let max = Object.keys(obj).length - 1; 
 	let random = Math.floor(Math.random() * (+max - +min)) + +min; 
-	let ua = obj[random].ua;
 	let gotourl, allLinks, addtourl;
 	let utm_source = ['','facebook','twitter','instagram','Bing','Yahoo','DuckDuckGo','LinkedIn','Reddit','','Quora']
 	let utm_sourcex = utm_source[(Math.floor(Math.random() * (+ (utm_source.length - 1) - + 0)) + + 0)];
@@ -86,6 +99,7 @@ const trafficBot = async id => {
 	}
 
 	console.log(`Now checking ${id}`);
+	console.log("OS: " + osFamily);
 	console.log("Proxy: ", proxy);
 	console.log("Browser: ", browser);
 	console.log('url:', url);
