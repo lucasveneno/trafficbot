@@ -1,7 +1,7 @@
 # Veneno Traffic Bot (With a rotating proxy server)
 This script generates traffic for websites
 
-# Prerequisites
+## Prerequisites
 
 * Ubuntu 18.04+ 64-bit operating system
 * A user account with sudo privileges
@@ -38,7 +38,7 @@ $ sudo apt-get install -y xvfb
 
 ## Step 4: Install NodeJS
 ```bash
-$ sudo apt install nodejs
+$ sudo apt-get install nodejs
 ```
 ## Step 5: Install Docker
 
@@ -55,8 +55,6 @@ $ docker run -d -p 8118:8118 -p 2090:2090 -e tors=100 -e privoxy=1 zeta0/alpine-
 ```
 
 apt-get install npm
-apt-get install xfvb
-
 
 npm i nightmare
 
