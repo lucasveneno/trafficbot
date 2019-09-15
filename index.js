@@ -36,13 +36,15 @@ const trafficBot = async id => {
 	// + port[Math.floor(Math.random() * (+ (port.length - 1) - + 0)) + + 0];
 
 	const proxyNightmare = Nightmare({
-		executionTimeout: 1000000,
+		executionTimeout: 1000000, // in ms
 		waitTimeout: 1000000, // in ms		
 		switches: {
 			'proxy-server': proxy, // set the proxy server here ...	
 			'ignore-certificate-errors': true	
 		},
-		show: true 
+		width: 1024,
+        height: 768,
+		show: true
 	});
 
 	let browsers = ['android-browser','chrome','firefox','internet-explorer','opera','safari'];
