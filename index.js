@@ -7,7 +7,7 @@ const trafficBot = async id => {
 
 	const minimist = require('./node_modules/minimist');
 	const platform = require('./node_modules/platform');
-	var Nightmare = require('./node_modules/nightmare');
+	const nightmare = require('./node_modules/nightmare');
 
 	let args = minimist(process.argv.slice(2), {
 		alias: {
@@ -33,7 +33,7 @@ const trafficBot = async id => {
 	let user =  args.user;
 	let pass = args.pass;
 	let browsers = ['android-browser','chrome','firefox','internet-explorer','opera','safari'];
-	let browser = browsers.randomElement(), myScreenArray;
+	let browser = browsers.randomElement(), screenArray;
 	let userAgentObj = require("./useragent/"+browser+".json");
 	let obj = JSON.parse(JSON.stringify(userAgentObj));
 	let ua = obj.randomElement().ua;
@@ -55,28 +55,26 @@ const trafficBot = async id => {
 	// + port[Math.floor(Math.random() * (+ (port.length - 1) - + 0)) + + 0];
 
 	if(osFamily == 'Android'){
-		myScreenArray = [[240,320],[320,480],[480,800], [600,1024], [720,1280], [800,1280]];
+		screenArray = [[240,320],[320,480],[480,800], [600,1024], [720,1280], [800,1280]];
 	}else if(osFamily == 'iOS'){
-		myScreenArray = [[375,812],[414,736],[375,667], [414,736], [320,568], [1024,1366]];
+		screenArray = [[375,812],[414,736],[375,667], [414,736], [320,568], [1024,1366]];
 	}else{
-		myScreenArray = [[640,480],[800,600], [1024,768], [1152,864], [1280,1024], [1366,768],[1600,1200]];
+		screenArray = [[640,480],[800,600], [1024,768], [1152,864], [1280,1024], [1366,768],[1600,1200]];
 	}
 	
-	let myRandomScreenElement = myScreenArray.randomElement();
+	let randomScreenElement = screenArray.randomElement();
 	
-	const proxyNightmare = Nightmare({
+	const proxyNightmare = nightmare({
 		executionTimeout: 1000000, // in ms
 		waitTimeout: 1000000, // in ms		
 		switches: {
 			'proxy-server': proxy, // set the proxy server here ...	
 			'ignore-certificate-errors': true	
 		},
-		width: myRandomScreenElement[0],
-		height: myRandomScreenElement[1],
+		width: randomScreenElement[0],
+		height: randomScreenElement[1],
 		show: true
 	});
-
-	
 
 	let min = 0; 
 	let max = Object.keys(obj).length - 1; 
@@ -103,8 +101,8 @@ const trafficBot = async id => {
 	console.log("Proxy: ", proxy);
 	console.log("Browser: ", browser);
 	console.log('url:', url);
-	console.log("Width:", myRandomScreenElement[0]);
-	console.log("height:", myRandomScreenElement[1]);
+	console.log("Width:", randomScreenElement[0]);
+	console.log("height:", randomScreenElement[1]);
 
 
 	// Go
