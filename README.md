@@ -1,5 +1,5 @@
-## VENENO TRAFFIC BOT (With a simple rotating TOR Proxy Server)
-This script generates traffic for websites
+## VENENO TRAFFIC BOT (With a simple rotating Tor Proxy Server)
+This script generates traffic for websites using a Tor pool proxy or any proxy server for which you desire
 
 ## Prerequisites
 
@@ -8,6 +8,14 @@ This script generates traffic for websites
 * Command line / terminal (CTRL-ALT-T or Applications menu > Accessories > Terminal)
 * Xvfb
 * NodeJS
+* unzip
+* libxi6
+* libgtk-3-0
+* libxss1
+* libgconf-2-4
+* libasound2
+* libxtst6
+* libnss3
 * Docker software repositories (optional)
 
 ## Step 1: Update Software Repositories
