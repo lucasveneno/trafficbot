@@ -1,0 +1,27 @@
+{
+  "name": "wrap-fn",
+  "version": "0.0.1",
+  "description": "support sync, async, and generator functions",
+  "keywords": [
+    "browser",
+    "wrap",
+    "generator"
+  ],
+  "author": "Matthew Mueller <mattmuelle@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/MatthewMueller/wrap-fn.git"
+  },
+  "dependencies": {
+    "co": "3.1.0"
+  },
+  "devDependencies": {
+    "duo": "^0.8.2",
+    "duo-test": "^0.3.2",
+    "generator-support": "0.0.1",
+    "gnode": "0.0.8",
+    "mocha": "*",
+    "should": "*"
+  },
+  "main": "index"
+}

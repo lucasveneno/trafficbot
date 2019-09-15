@@ -1,0 +1,16 @@
+{
+  "name": "better-batch",
+  "repo": "matthewmueller/better-batch",
+  "description": "visionmedia/batch, but with support for sync and generator functions, along with arguments passing",
+  "version": "0.0.1",
+  "keywords": [],
+  "dependencies": {
+    "matthewmueller/wrap-fn": "0.0.1"
+  },
+  "development": {},
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": [
+    "index.js"
+  ]
+}

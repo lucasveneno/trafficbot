@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var program = require('commander')
+  , mm = require('..');
+
+// options
+
+program
+  .usage('< template > js')
+  .version(require('../package.json').version)
+  .parse(process.argv);
+
+// read stdin
+
+var str = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', function(chunk){ str += chunk; });
+process.stdin.on('end', done);
+process.stdin.resume();
+
+function done() {
+  var fn = mm.compile(str).toString();
+  process.stdout.write('module.exports = ' + fn);
+}

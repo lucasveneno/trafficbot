@@ -1,0 +1,19 @@
+{
+  "node": true,
+
+  "strict": true,
+  "curly": true,
+  "eqeqeq": true,
+  "forin": true,
+  "freeze": true,
+  "indent": 4,
+  "nonew": true,
+  "noarg": true,
+  "undef": true,
+  "bitwise": true,
+  "unused": true,
+
+  "-W080": true,
+
+  "predef": [ "describe", "after", "before", "afterEach", "beforeEach", "it" ]
+}
