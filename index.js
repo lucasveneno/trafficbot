@@ -15,8 +15,8 @@ let args = minimist(process.argv.slice(2), {
 		url : 'https://iphub.info/',
 		proxy : '45.77.76.143',
 		port : '8080',
-		user: 'lucas',
-		pass: 'veneno',
+		user: 'lucasveneno',
+		pass: 'lucasveneno',
 		windows: '1' // Total of windows to be opened
 	}
 });

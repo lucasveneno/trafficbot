@@ -80,9 +80,9 @@ Environment Variables
 -----
  * `url` - URL for navigation.
    (Default: http://google.com)
- * `proxy` - Boolean, whatever to run insance of privoxy in front of haproxy.
+ * `proxy` -  The proxy server that acts as an intermediary for requests.
  * `port` - Integer, port for proxy. (Default: 8080)
- * `user` and `pass` - BasicAuth config for proxy.
+ * `user` and `pass` - BasicAuth config for the proxy server.
    (Default: `lucasveneno` in both variables)
  * `windows` - Integer, number of Veneno Traffic Bots instances to run. (Default: 1)
  * `time` - Integer, MaxCircuitDirtiness parameter value in
