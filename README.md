@@ -109,7 +109,16 @@ Environment variables
  * `windows` - Integer, number of bot instances to run. (Default: 1)
  * `time` - Integer, Max session time parameter value in minutes. (Default: 3 minutes in 6 pages)
 
-Normal usage with environment variables and Xvfb
+Basic usage with Xvfb enabled and proxy disabled (IP of the server)
+-----
+
+```bash
+# Run the traffic bot
+xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --windows 1 --time 2
+```
+
+
+Normal usage with environment variables and Xvfb enabled
 -----
 
 ```bash
@@ -117,7 +126,7 @@ Normal usage with environment variables and Xvfb
 xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
 
-Normal usage with environment variables
+Normal usage with environment variables and without Xvfb
 -----
 
 ```bash
