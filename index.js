@@ -9,7 +9,8 @@ let args = minimist(process.argv.slice(2), {
 		pt : 'port',
 		us : 'user',
 		ps : 'pass',
-		ws : 'windows'
+		ws : 'windows',
+		te : 'time'
 	},
 	default: {
 		url : 'https://iphub.info/',
@@ -17,7 +18,8 @@ let args = minimist(process.argv.slice(2), {
 		port : '8080',
 		user: 'lucasveneno',
 		pass: 'lucasveneno',
-		windows: '1' // Total of windows to be opened
+		windows: '1', // Total of windows to be opened
+		time : '3'
 	}
 });
 
@@ -34,6 +36,8 @@ const venenoTrafficBot = async id => {
 	let proxy = args.proxy + ':' + args.port;
 	let user =  args.user;
 	let pass = args.pass;
+	let miliseconds = args.time * 60000;
+	let msperpage = (miliseconds / 6);
 	let browsers = ['android-browser','chrome','firefox','internet-explorer','opera','safari'];
 	let browser = browsers.randomElement(), screenArray;
 	let userAgentObj = require("./useragent/"+browser+".json");
@@ -105,7 +109,7 @@ const venenoTrafficBot = async id => {
 	console.log('url:', url);
 	console.log("Width:", randomScreenElement[0]);
 	console.log("height:", randomScreenElement[1]);
-
+	console.log("Ms per page: "+ msperpage);
 
 	// Go
 	try {
@@ -125,7 +129,7 @@ const venenoTrafficBot = async id => {
 		})*/
 		.goto(url+addtourl)	
 		//.inject('js', 'jquery-3.4.1.min.js')
-		.wait(Math.floor(Math.random() * 15000) + 10000)	
+		.wait(msperpage)	
 		.evaluate(() => {
 			var index;
 			var blacklist = ['/account/settings','/pages/1/privacy', '/forgot-password', '/register', '/login'];
@@ -161,7 +165,7 @@ const venenoTrafficBot = async id => {
 			var allLinks = document.links;
 			document.location.href = allLinks[Math.floor(Math.random() * (+ (allLinks.length - 1) - + 0)) + + 0].href;			
 		})
-		.wait(Math.floor(Math.random() * 25000) + 12000)
+		.wait(msperpage)
 		.evaluate(() => {
 			var index;
 			var blacklist = ['/account/settings','/pages/1/privacy', '/forgot-password', '/register', '/login'];
@@ -179,7 +183,7 @@ const venenoTrafficBot = async id => {
 			var allLinks = document.links;
 			document.location.href = allLinks[Math.floor(Math.random() * (+ (allLinks.length - 1) - + 0)) + + 0].href;		
 		})
-		.wait(Math.floor(Math.random() * 24000) + 17000)
+		.wait(msperpage)
 		.evaluate(() => {
 			var index;
 			var blacklist = ['/account/settings','/pages/1/privacy', '/forgot-password', '/register', '/login'];
@@ -198,7 +202,7 @@ const venenoTrafficBot = async id => {
 			document.location.href = allLinks[Math.floor(Math.random() * (+ (allLinks.length - 1) - + 0)) + + 0].href;
 			
 		})
-		.wait(Math.floor(Math.random() * 21000) + 17000)
+		.wait(msperpage)
 		.evaluate(() => {
 			var index;
 			var blacklist = ['/account/settings','/pages/1/privacy', '/forgot-password', '/register', '/login'];
@@ -217,7 +221,7 @@ const venenoTrafficBot = async id => {
 			document.location.href = allLinks[Math.floor(Math.random() * (+ (allLinks.length - 1) - + 0)) + + 0].href;
 			
 		})
-		.wait(Math.floor(Math.random() * 21000) + 17000)
+		.wait(msperpage)
 		.evaluate(() => {
 			var index;
 			var blacklist = ['/account/settings','/pages/1/privacy', '/forgot-password', '/register', '/login'];
@@ -235,25 +239,7 @@ const venenoTrafficBot = async id => {
 			var allLinks = document.links;
 			document.location.href = allLinks[Math.floor(Math.random() * (+ (allLinks.length - 1) - + 0)) + + 0].href;
 		})
-		.wait(Math.floor(Math.random() * 21000) + 17000)
-		.evaluate(() => {
-			var index;
-			var blacklist = ['/account/settings','/pages/1/privacy', '/forgot-password', '/register', '/login'];
-
-			for (index = 0; index < blacklist.length; ++index) {
-				var element = document.querySelector('[href="'+blacklist[index]+'"]');
-
-				if(element !== null){			
-					element.parentNode.removeChild(element);
-				}else if(element == null){
-
-				}
-			}
-			
-			var allLinks = document.links;
-			document.location.href = allLinks[Math.floor(Math.random() * (+ (allLinks.length - 1) - + 0)) + + 0].href;
-		})
-		.wait(Math.floor(Math.random() * 25000) + 16000)
+		.wait(msperpage)
 		.end()
 		.then(function (result) {
 			console.log("result: "+result);
