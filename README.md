@@ -99,11 +99,12 @@ Crontab at every minute
 -----
 
 ```bash
-* * * * * cd /home/node_modules/nightmare/ && xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony queridin.js
+* * * * * cd /home/node_modules/nightmare/ && xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js
 ```
 
 Further readings
 ----------------
+ * [NodeJS](https://nodejs.org/en/)
  * [Nightmare](https://www.npmjs.com/package/nightmare)
  * [Tor Manual](https://www.torproject.org/docs/tor-manual.html.en)
  * [Tor Control](https://www.thesprawl.org/research/tor-control-protocol/)
