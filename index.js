@@ -14,10 +14,10 @@ let args = minimist(process.argv.slice(2), {
 	},
 	default: {
 		url : 'https://iphub.info/',
-		proxy : '127.0.0.1',
-		port : '8080',
-		user: 'lucasveneno',
-		pass: 'lucasveneno',
+		proxy : '',
+		port : '',
+		user: '',
+		pass: '',
 		windows: '1', // Total of windows to be opened
 		time : '3' // Total time of the section in minutes
 	}
@@ -33,8 +33,8 @@ const venenoTrafficBot = async id => {
 	}	
 
 	let url = args.url;
-	let proxy = args.proxy + ':' + args.port;
-	let user =  args.user;
+	let proxy = args.proxy ? args.proxy + ':' + args.port : '';
+	let user = args.user;
 	let pass = args.pass;
 	let miliseconds = args.time * 60000;
 	let msperpage = (miliseconds / 6);
@@ -52,7 +52,24 @@ const venenoTrafficBot = async id => {
 	// info.description; // 'Opera 11.52 (identifying as Firefox 4.0) on Mac OS X 10.7.2'
 	let osFamily = info.os.family;
 
-	console.log(info.layout);
+	// ERRORS
+	if (url == '') {
+		console.log('-----------------------------------------------------');
+		console.log('Oops! Please enter a url.');
+		console.log('-----------------------------------------------------');
+		process.exit(1);
+	} else if (user == '' && pass != '') {
+		console.log('-----------------------------------------------------');
+		console.log('Oops! Please enter a username of the proxy server.');
+		console.log('-----------------------------------------------------');
+		process.exit(1);
+	} else if (user != '' && pass == '') {
+		console.log('-----------------------------------------------------');
+		console.log('Oops! Please enter a password of the proxy server.');
+		console.log('-----------------------------------------------------');
+		process.exit(1);
+	}
+
 	// print process.argv
 	// process.argv.forEach(function (val, index, array) { 	console.log(index + ': ' + val);  });
 
@@ -106,10 +123,12 @@ const venenoTrafficBot = async id => {
 	console.log("OS: " + osFamily);
 	console.log("Proxy: ", proxy);
 	console.log("Browser: ", browser);
-	console.log('url:', url);
-	console.log("Width:", randomScreenElement[0]);
-	console.log("height:", randomScreenElement[1]);
-	console.log("Ms per page: "+ msperpage);
+	console.log('Url: ', url);
+	console.log("Width: ", randomScreenElement[0]);
+	console.log("Height: ", randomScreenElement[1]);
+	console.log("Miliseconds per page: "+ msperpage);
+	console.log("Layout: " + info.layout);
+
 
 	// Go
 	try {

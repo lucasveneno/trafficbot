@@ -70,14 +70,21 @@ Environment variables
  * `port` - Integer, port for proxy. (Default: 8080)
  * `user` and `pass` - Basic auth config for the proxy server. (Default: `lucasveneno` in both variables)
  * `windows` - Integer, number of bot instances to run. (Default: 1)
- * `time` - Integer, Max section time parameter value in minutes. (Default: 3 minutes)
+ * `time` - Integer, Max session time parameter value in minutes. (Default: 3 minutes)
 
 Normal usage with environment variables
 -----
 
 ```bash
 # build docker container
-node index.js --url https://iphub.info/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno --windows 3
+node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
+```
+Normal usage without proxy option and 3 minute session and only one window
+-----
+
+```bash
+# build docker container
+node index.js --url https://iphub.info/ --windows 1 --time 3 
 ```
 
 Debug usage
@@ -85,7 +92,7 @@ Debug usage
 
 ```bash
 # build docker container
-DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno --windows 3 3>log.txt
+DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno --windows 1 --time 2 3>log.txt
 ```
 
 Crontab at every minute
