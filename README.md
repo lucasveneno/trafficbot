@@ -72,6 +72,14 @@ Environment variables
  * `windows` - Integer, number of bot instances to run. (Default: 1)
  * `time` - Integer, Max session time parameter value in minutes. (Default: 3 minutes)
 
+Normal usage with environment variables and Xvfb
+-----
+
+```bash
+# build docker container
+xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
+```
+
 Normal usage with environment variables
 -----
 
@@ -79,7 +87,8 @@ Normal usage with environment variables
 # build docker container
 node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
-Normal usage without proxy option and 3 minute session and only one window
+
+Normal usage without Xvfb and proxy option with 3 minute session and only one window
 -----
 
 ```bash
