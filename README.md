@@ -125,7 +125,7 @@ Normal usage with environment variables and Xvfb enabled
 xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
 
-Normal usage with environment variables and without Xvfb
+Normal usage with environment variables and without Xvfb (Graphic Card Needed)
 -----
 
 ```bash
