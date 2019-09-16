@@ -157,3 +157,10 @@ Further readings
  * [Tor Control](https://www.thesprawl.org/research/tor-control-protocol/)
  * [HAProxy Manual](http://cbonte.github.io/haproxy-dconv/index.html)
  * [Privoxy Manual](https://www.privoxy.org/user-manual/)
+
+License
+-----
+
+Veneno Traffic Bot is an open source project released under the permissive MIT license.
+
+Veneno Traffic Bot is standing on the shoulders of giants. Building something like Veneno Traffic Bot probably wouldn't be possible if not for the excellent open source projects that it builds on top of. In particular, it uses Nightmare for its fast, event-driven architecture.
