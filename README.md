@@ -55,6 +55,12 @@ To install Docker on Ubuntu, in the terminal window enter the command:
 ```bash
 snap docker install
 ```
+or
+
+```bash
+apt install docker.io
+```
+
 ## Step 6: Run the Proxy Server
 
 So now we gonna create a proxy server
