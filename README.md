@@ -117,7 +117,6 @@ Basic usage with Xvfb enabled and proxy disabled (IP of the server)
 xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --windows 1 --time 2
 ```
 
-
 Normal usage with environment variables and Xvfb enabled
 -----
 
