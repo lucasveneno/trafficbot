@@ -133,7 +133,7 @@ Normal usage with environment variables and without Xvfb (Graphic Card Needed)
 node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
 
-Normal usage without Xvfb and proxy option with 3 minute session and only one window
+Normal usage without Xvfb (Graphic Card Needed) and proxy option with 3 minute session and only one window
 -----
 
 ```bash
@@ -141,7 +141,7 @@ Normal usage without Xvfb and proxy option with 3 minute session and only one wi
 node index.js --url https://iphub.info/ --windows 1 --time 3 
 ```
 
-Debug usage
+Debug usage Without Xvfb (Graphic Card Needed)
 -----
 
 ```bash
@@ -153,7 +153,7 @@ Crontab at every minute
 -----
 
 ```bash
-* * * * * xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony /var/www/trafficbot/index.js
+* * * * * xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony /var/www/trafficbot/index.js --url https://iphub.info/ --windows 1 --time 3 
 ```
 
 Further readings
