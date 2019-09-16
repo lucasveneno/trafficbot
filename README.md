@@ -41,26 +41,26 @@ $ sudo apt install -y unzip libxi6 libgtk-3-0 libxss1 libgconf-2-4 libasound2 li
 Here Xvfb (X virtual framebuffer) is an in-memory display server for a UNIX-like operating system (e.g., Linux). It implements the X11 display server protocol without any display. This is helpful for CLI applications like CI service.
 
 ```bash
-$ sudo apt-get install -y xvfb
+sudo apt-get install -y xvfb
 ```
 
 ## Step 4: Install NodeJS
 ```bash
-$ sudo apt-get install nodejs
+sudo apt-get install nodejs
 ```
 ## Step 5: Install Docker
 
 To install Docker on Ubuntu, in the terminal window enter the command:
 
 ```bash
-$ snap docker install
+snap docker install
 ```
 ## Step 6: Run the Proxy Server
 
 So now we gonna create a proxy server
 
 ```bash
-$ docker run -d -p 8118:8118 -p 2090:2090 -e tors=100 -e privoxy=1 zeta0/alpine-tor
+docker run -d -p 8118:8118 -p 2090:2090 -e tors=100 -e privoxy=1 zeta0/alpine-tor
 ```
 
 Environment variables
