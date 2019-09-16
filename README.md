@@ -18,7 +18,7 @@ This script generates traffic for websites using a Tor Proxy Pool or any proxy s
 * libnss3
 * Docker software repositories (optional)
 
-## Step 1: Update Software Repositories
+## Step 1: Update software repositories
 
 As usual, it’s a good idea to update the local database of software to make sure you’ve got access to the latest revisions.
 
@@ -31,7 +31,7 @@ $ sudo apt-get update
 Allow the operation to complete.
 
 
-## Step 2: Install Requirements for Electron and Xvfb
+## Step 2: Install requirements for Electron and Xvfb
 ```bash
 $ sudo apt install -y unzip libxi6 libgtk-3-0 libxss1 libgconf-2-4 libasound2 libxtst6 libnss3
 ```
@@ -63,7 +63,7 @@ So now we gonna create a proxy server
 $ docker run -d -p 8118:8118 -p 2090:2090 -e tors=100 -e privoxy=1 zeta0/alpine-tor
 ```
 
-Environment Variables
+Environment variables
 -----
  * `url` - URL for navigation. (Default: http://google.com)
  * `proxy` - The proxy server IP or address that acts as an intermediary for requests. (Default: 127.0.0.1)
@@ -72,7 +72,15 @@ Environment Variables
  * `windows` - Integer, number of bot instances to run. (Default: 1)
  * `time` - Integer, Max section time parameter value in minutes. (Default: 3 minutes)
 
-Debug Usage
+Normal usage with environment variables
+-----
+
+```bash
+# build docker container
+node index.js --url https://iphub.info/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno --windows 3
+```
+
+Debug usage
 -----
 
 ```bash
@@ -81,12 +89,13 @@ DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 45.77
 ```
 
 Crontab at every minute
+-----
 
 ```bash
 * * * * * cd /home/node_modules/nightmare/ && xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony queridin.js
 ```
 
-Further Readings
+Further readings
 ----------------
  * [Nightmare](https://www.npmjs.com/package/nightmare)
  * [Tor Manual](https://www.torproject.org/docs/tor-manual.html.en)
