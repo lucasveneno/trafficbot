@@ -41,24 +41,24 @@ $ sudo apt install -y unzip libxi6 libgtk-3-0 libxss1 libgconf-2-4 libasound2 li
 Here Xvfb (X virtual framebuffer) is an in-memory display server for a UNIX-like operating system (e.g., Linux). It implements the X11 display server protocol without any display. This is helpful for CLI applications like CI service.
 
 ```bash
-sudo apt-get install -y xvfb
+$ sudo apt-get install -y xvfb
 ```
 
 ## Step 4: Install NodeJS
 ```bash
-sudo apt-get install nodejs
+$ sudo apt-get install nodejs
 ```
 ## Step 5: Install Docker
 
 To install Docker on Ubuntu, in the terminal window enter the command:
 
 ```bash
-snap docker install
+$ snap docker install
 ```
 or
 
 ```bash
-apt install docker.io
+$ apt install docker.io
 ```
 
 ## Step 6: Run the Proxy Server
@@ -66,7 +66,36 @@ apt install docker.io
 So now we gonna create a proxy server
 
 ```bash
-docker run -d -p 8118:8118 -p 2090:2090 -e tors=100 -e privoxy=1 zeta0/alpine-tor
+# build docker container
+docker build -t zeta0/alpine-tor:latest .
+
+# ... or pull docker container
+docker pull zeta0/alpine-tor:latest
+
+# start docker container
+docker run -d -p 5566:5566 -p 2090:2090 -e tors=25 zeta0/alpine-tor
+
+# start docker with privoxy enabled and exposed
+docker run -d -p 8118:8118 -p 2090:2090 -e tors=25 -e privoxy=1 zeta0/alpine-tor
+
+# test with ...
+curl --socks5 localhost:5566 http://httpbin.org/ip
+
+# or if privoxy enabled ...
+curl --proxy localhost:8118 http://httpbin.org/ip
+
+# or to run chromium with your new found proxy
+chromium --proxy-server="http://localhost:8118" \
+    --host-resolver-rules="MAP * 0.0.0.0 , EXCLUDE localhost"
+
+# monitor
+# auth login:admin
+# auth pass:admin
+http://localhost:2090 or http://admin:admin@localhost:2090
+
+# start docket container with new auth
+docker run -d -p 5566:5566 -p 2090:2090 -e haproxy_login=MySecureLogin \
+    -e haproxy_pass=MySecurePassword zeta0/alpine-tor
 ```
 
 Environment variables
@@ -83,7 +112,7 @@ Normal usage with environment variables and Xvfb
 
 ```bash
 # build docker container
-xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
+$ xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
 
 Normal usage with environment variables
@@ -91,7 +120,7 @@ Normal usage with environment variables
 
 ```bash
 # build docker container
-node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
+$ node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
 
 Normal usage without Xvfb and proxy option with 3 minute session and only one window
@@ -99,7 +128,7 @@ Normal usage without Xvfb and proxy option with 3 minute session and only one wi
 
 ```bash
 # build docker container
-node index.js --url https://iphub.info/ --windows 1 --time 3 
+$ node index.js --url https://iphub.info/ --windows 1 --time 3 
 ```
 
 Debug usage
