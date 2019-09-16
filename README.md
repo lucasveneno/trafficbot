@@ -151,8 +151,8 @@ Crontab at every minute
 Further readings
 ----------------
  * [NodeJS](https://nodejs.org/en/)
+ * [Nightmare](https://github.com/segmentio/nightmare)
  * [Alpine Tor](https://github.com/zet4/alpine-tor)
- * [Nightmare](https://www.npmjs.com/package/nightmare)
  * [Tor Manual](https://www.torproject.org/docs/tor-manual.html.en)
  * [Tor Control](https://www.thesprawl.org/research/tor-control-protocol/)
  * [HAProxy Manual](http://cbonte.github.io/haproxy-dconv/index.html)
