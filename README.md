@@ -65,10 +65,10 @@ $ docker run -d -p 8118:8118 -p 2090:2090 -e tors=100 -e privoxy=1 zeta0/alpine-
 
 Environment variables
 -----
- * `url` - URL for navigation. (Default: http://google.com)
- * `proxy` - The proxy server IP or address that acts as an intermediary for requests. (Default: 127.0.0.1)
- * `port` - Integer, port for proxy. (Default: 8080)
- * `user` and `pass` - Basic auth config for the proxy server. (Default: `lucasveneno` in both variables)
+ * `url` - URL for navigation. (Default: https://iphub.info/)
+ * `proxy` - The proxy server IP or address that acts as an intermediary for requests. (Example: 127.0.0.1)
+ * `port` - Integer, port for proxy. (Example: 8080)
+ * `user` and `pass` - Basic auth config for the proxy server. (Default: \`\` in both variables)
  * `windows` - Integer, number of bot instances to run. (Default: 1)
  * `time` - Integer, Max session time parameter value in minutes. (Default: 3 minutes)
 

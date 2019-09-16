@@ -43,14 +43,14 @@ const venenoTrafficBot = async id => {
 	let userAgentObj = require("./useragent/"+browser+".json");
 	let obj = JSON.parse(JSON.stringify(userAgentObj));
 	let ua = obj.randomElement().ua;
-
 	let info = platform.parse(ua); // Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7.2; en; rv:2.0) Gecko/20100101 Firefox/4.0 Opera 11.52
+	let osFamily = info.os.family; // Android, IOS, Linux, etc..
+
 	// info.name; // 'Opera'
 	// info.version; // '11.52'
 	// info.layout; // 'Presto'
 	// info.os; // 'Mac OS X 10.7.2'
 	// info.description; // 'Opera 11.52 (identifying as Firefox 4.0) on Mac OS X 10.7.2'
-	let osFamily = info.os.family;
 
 	// ERRORS
 	if (url == '') {
@@ -79,7 +79,7 @@ const venenoTrafficBot = async id => {
 
 	if(osFamily == 'Android'){
 		screenArray = [[240,320],[320,480],[480,800], [600,1024], [720,1280], [800,1280]];
-	}else if(osFamily == 'iOS'){
+	}else if(osFamily == 'IOS'){
 		screenArray = [[375,812],[414,736],[375,667], [414,736], [320,568], [1024,1366]];
 	}else{
 		screenArray = [[640,480],[800,600], [1024,768], [1152,864], [1280,1024], [1366,768],[1600,1200]];
