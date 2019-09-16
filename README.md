@@ -25,7 +25,7 @@ As usual, it’s a good idea to update the local database of software to make su
 Therefore, open a terminal window and type:
 
 ```bash
-$ sudo apt-get update
+sudo apt-get update
 ```
 
 Allow the operation to complete.
@@ -33,7 +33,7 @@ Allow the operation to complete.
 
 ## Step 2: Install requirements for Electron and Xvfb
 ```bash
-$ sudo apt install -y unzip libxi6 libgtk-3-0 libxss1 libgconf-2-4 libasound2 libxtst6 libnss3
+sudo apt install -y unzip libxi6 libgtk-3-0 libxss1 libgconf-2-4 libasound2 libxtst6 libnss3
 ```
 
 ## Step 3: Install Xvfb
@@ -41,24 +41,24 @@ $ sudo apt install -y unzip libxi6 libgtk-3-0 libxss1 libgconf-2-4 libasound2 li
 Here Xvfb (X virtual framebuffer) is an in-memory display server for a UNIX-like operating system (e.g., Linux). It implements the X11 display server protocol without any display. This is helpful for CLI applications like CI service.
 
 ```bash
-$ sudo apt-get install -y xvfb
+sudo apt-get install -y xvfb
 ```
 
 ## Step 4: Install NodeJS
 ```bash
-$ sudo apt-get install nodejs
+sudo apt-get install nodejs
 ```
 ## Step 5: Install Docker
 
 To install Docker on Ubuntu, in the terminal window enter the command:
 
 ```bash
-$ snap docker install
+snap docker install
 ```
 or
 
 ```bash
-$ apt install docker.io
+apt install docker.io
 ```
 
 ## Step 6: Run the Proxy Server
@@ -113,16 +113,16 @@ Normal usage with environment variables and Xvfb
 -----
 
 ```bash
-# build docker container
-$ xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
+# Run the traffic bot
+xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
 
 Normal usage with environment variables
 -----
 
 ```bash
-# build docker container
-$ node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
+# Run the traffic bot
+node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
 
 Normal usage without Xvfb and proxy option with 3 minute session and only one window
@@ -130,7 +130,7 @@ Normal usage without Xvfb and proxy option with 3 minute session and only one wi
 
 ```bash
 # build docker container
-$ node index.js --url https://iphub.info/ --windows 1 --time 3 
+node index.js --url https://iphub.info/ --windows 1 --time 3 
 ```
 
 Debug usage
@@ -151,6 +151,7 @@ Crontab at every minute
 Further readings
 ----------------
  * [NodeJS](https://nodejs.org/en/)
+ * [Alpine Tor](https://github.com/zet4/alpine-tor)
  * [Nightmare](https://www.npmjs.com/package/nightmare)
  * [Tor Manual](https://www.torproject.org/docs/tor-manual.html.en)
  * [Tor Control](https://www.thesprawl.org/research/tor-control-protocol/)
