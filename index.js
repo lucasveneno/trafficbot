@@ -1,3 +1,13 @@
+/*
+
+Name: Veneno Traffic Bot
+Version: 1.0
+License: MIT
+Author: Lucas Coelho de Oliveira Lima
+Email: webmaster@lucasveneno.com
+
+*/
+
 const minimist = require('./node_modules/minimist');
 const platform = require('./node_modules/platform');
 const nightmare = require('./node_modules/nightmare');
