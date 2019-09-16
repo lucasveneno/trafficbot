@@ -146,7 +146,6 @@ const venenoTrafficBot = async id => {
 		await proxyNightmare
 		.authentication(user,pass)
 		.useragent(ua)
-		//.authentication('', '') // ... and authenticate here before `goto`
 		/*.goto('http://www.ipchicken.com')
 		.evaluate(() => {
 			return document.querySelector('b').innerText.replace(/[^\d\.]/g, '');
