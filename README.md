@@ -129,7 +129,7 @@ Normal usage without Xvfb and proxy option with 3 minute session and only one wi
 -----
 
 ```bash
-# build docker container
+# Run the traffic bot
 node index.js --url https://iphub.info/ --windows 1 --time 3 
 ```
 
@@ -137,7 +137,7 @@ Debug usage
 -----
 
 ```bash
-# build docker container
+#  Run the traffic bot with Debug enabled
 DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno --windows 1 --time 2 3>log.txt
 ```
 
