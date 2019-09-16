@@ -138,7 +138,7 @@ Debug usage
 
 ```bash
 #  Run the traffic bot with Debug enabled
-DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno --windows 1 --time 2 3>log.txt
+DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2 3>log.txt
 ```
 
 Crontab at every minute
