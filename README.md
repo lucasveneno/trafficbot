@@ -55,6 +55,7 @@ To install Docker on Ubuntu, in the terminal window enter the command:
 ```bash
 $ snap docker install
 ```
+## Step 6: Run the Proxy Server
 
 So now we gonna create a proxy server
 
@@ -62,34 +63,33 @@ So now we gonna create a proxy server
 $ docker run -d -p 8118:8118 -p 2090:2090 -e tors=100 -e privoxy=1 zeta0/alpine-tor
 ```
 
-apt-get install npm
+Environment Variables
+-----
+ * `url` - URL for navigation. (Default: http://google.com)
+ * `proxy` - The proxy server IP or address that acts as an intermediary for requests. (Default: 127.0.0.1)
+ * `port` - Integer, port for proxy. (Default: 8080)
+ * `user` and `pass` - Basic auth config for the proxy server. (Default: `lucasveneno` in both variables)
+ * `windows` - Integer, number of bot instances to run. (Default: 1)
+ * `time` - Integer, Max section time parameter value in minutes. (Default: 3 minutes)
 
-npm i nightmare
+Debug Usage
+-----
 
-https://www.npmjs.com/package/nightmare
+```bash
+# build docker container
+DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno --windows 3 3>log.txt
+```
 
-DEBUG_FD=3 DEBUG=nightmare*,electron* node my-script.js 3>log.txt
-
-Crontab
+Crontab at every minute
 
 ```bash
 * * * * * cd /home/node_modules/nightmare/ && xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony queridin.js
 ```
 
-Environment Variables
------
- * `url` - URL for navigation.
-   (Default: http://google.com)
- * `proxy` -  The proxy server that acts as an intermediary for requests.
- * `port` - Integer, port for proxy. (Default: 8080)
- * `user` and `pass` - BasicAuth config for the proxy server.
-   (Default: `lucasveneno` in both variables)
- * `windows` - Integer, number of Veneno Traffic Bots instances to run. (Default: 1)
- * `time` - Integer, MaxCircuitDirtiness parameter value in
-   seconds. (Default: 10 minutes)
-
-
-
-
-
-DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 45.77.76.143 --port 8080 --user lucas --pass veneno --windows 3 3>log.txt
+Further Readings
+----------------
+ * [Nightmare](https://www.npmjs.com/package/nightmare)
+ * [Tor Manual](https://www.torproject.org/docs/tor-manual.html.en)
+ * [Tor Control](https://www.thesprawl.org/research/tor-control-protocol/)
+ * [HAProxy Manual](http://cbonte.github.io/haproxy-dconv/index.html)
+ * [Privoxy Manual](https://www.privoxy.org/user-manual/)

@@ -14,12 +14,12 @@ let args = minimist(process.argv.slice(2), {
 	},
 	default: {
 		url : 'https://iphub.info/',
-		proxy : '45.77.76.143',
+		proxy : '127.0.0.1',
 		port : '8080',
 		user: 'lucasveneno',
 		pass: 'lucasveneno',
 		windows: '1', // Total of windows to be opened
-		time : '3'
+		time : '3' // Total time of the section in minutes
 	}
 });
 
