@@ -44,9 +44,12 @@ Here Xvfb (X virtual framebuffer) is an in-memory display server for a UNIX-like
 sudo apt-get install -y xvfb
 ```
 
-## Step 4: Install NodeJS
+## Step 4: Install NodeJS or NPM
 ```bash
 sudo apt-get install nodejs
+```
+```bash
+sudo apt-get install npm
 ```
 ## Step 5: Install Docker
 
