@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*
 
 Name: Veneno Traffic Bot
@@ -521,4 +520,3 @@ for (var i = 0; i < args.windows; i++) {
 	venenoTrafficBot(i).then(a => console.dir(a)).catch(e => console.error(e));
 	//console.log('#' + i);
 }
->>>>>>> 691858c... lfs setup
