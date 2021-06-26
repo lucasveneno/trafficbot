@@ -107,7 +107,7 @@ docker run -d -p 5566:5566 -p 2090:2090 -e haproxy_login=MySecureLogin \
 
 Environment variables
 -----
- * `url` - URL for navigation. (Default: https://iphub.info/)
+ * `url` - URL for navigation. (Default: https://ppplayer.com/)
  * `proxy` - The proxy server IP or address that acts as an intermediary for requests. (Example: 127.0.0.1 - Default: '')
  * `port` - Integer, port for proxy. (Example: 8080)
  * `user` and `pass` - Basic auth config for the proxy server. (Default: \`\` in both variables)
@@ -119,7 +119,7 @@ Basic usage with Xvfb enabled and proxy disabled (IP of the server)
 
 ```bash
 # Run the traffic bot
-xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --windows 1 --time 2
+xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://ppplayer.com/ --windows 1 --time 2
 ```
 
 Normal usage with environment variables and Xvfb enabled
@@ -127,7 +127,7 @@ Normal usage with environment variables and Xvfb enabled
 
 ```bash
 # Run the traffic bot
-xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
+xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://ppplayer.com/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
 
 Normal usage with environment variables and without Xvfb (Graphic Card Needed)
@@ -135,7 +135,7 @@ Normal usage with environment variables and without Xvfb (Graphic Card Needed)
 
 ```bash
 # Run the traffic bot
-node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
+node index.js --url https://ppplayer.com --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
 
 Normal usage without Xvfb (Graphic Card Needed) and proxy option with 3 minute session and only one window
@@ -143,7 +143,7 @@ Normal usage without Xvfb (Graphic Card Needed) and proxy option with 3 minute s
 
 ```bash
 # Run the traffic bot
-node index.js --url https://iphub.info/ --windows 1 --time 3 
+node index.js --url https://ppplayer.com/ --windows 1 --time 3 
 ```
 
 Debug usage Without Xvfb (Graphic Card Needed)
@@ -151,14 +151,19 @@ Debug usage Without Xvfb (Graphic Card Needed)
 
 ```bash
 #  Run the traffic bot with Debug enabled
-DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 19011 --user lucas --pass veneno --windows 1 --time 4 3>log.txt
+DEBUG=nightmare*,electron* node index.js --url https://ppplayer.com --windows 1 --time 4 3>log.txt
+```
+
+```bash
+#  Run the traffic bot with Debug enabled
+DEBUG=nightmare*,electron* node index.js --url https://ppplayer.com --proxy 127.0.0.1 --port 19011 --user lucas --pass veneno --windows 1 --time 4 3>log.txt
 ```
 
 Crontab at every minute
 -----
 
 ```bash
-* * * * * xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony /var/www/trafficbot/index.js --url https://iphub.info/ --windows 1 --time 3 
+* * * * * xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony /var/www/trafficbot/index.js --url https://ppplayer.com --windows 1 --time 3 
 ```
 
 Further readings
