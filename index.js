@@ -42,14 +42,14 @@ const venenoTrafficBot = async id => {
 		return this[Math.floor(Math.random() * this.length)];
 	}	
 
-	let url = args.url;
+	let url = args.url, screenArray;
 	let proxy = args.proxy ? args.proxy + ':' + args.port : '';
 	let user = args.user;
 	let pass = args.pass;
 	let miliseconds = (args.time * 6000) / 6;
 	let pagestonavigate = 5;
 	//let browsers = ['android-browser','chrome','firefox','internet-explorer','opera','safari'];
-	//let browser = browsers.randomElement(), screenArray;
+	//let browser = browsers.randomElement();
 	//let userAgentObj = require("./useragent/"+browser+".json");
 	let userAgentObj = require("./useragent/most-common.json");
 	let obj = JSON.parse(JSON.stringify(userAgentObj));
@@ -127,7 +127,7 @@ const venenoTrafficBot = async id => {
 	console.log(`Now checking ${id}`);
 	console.log("OS: " + osFamily);
 	console.log("Proxy: ", proxy);
-	console.log("Browser: ", browser);
+	console.log("Browser: ", ua);
 	console.log('Url: ', url);
 	console.log("Width: ", randomScreenElement[0]);
 	console.log("Height: ", randomScreenElement[1]);
