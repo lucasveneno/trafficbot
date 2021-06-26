@@ -155,7 +155,7 @@ DEBUG=nightmare*,electron* node index.js --url https://ppplayer.com --windows 1 
 ```
 
 ```bash
-#  Run the traffic bot with Debug enabled
+#  Run the traffic bot with Proxy and Debug enabled
 DEBUG=nightmare*,electron* node index.js --url https://ppplayer.com --proxy 127.0.0.1 --port 19011 --user lucas --pass veneno --windows 1 --time 4 3>log.txt
 ```
 
