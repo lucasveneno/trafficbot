@@ -16,6 +16,8 @@ This script generates traffic for websites using a Tor Proxy Pool or any proxy s
 * libasound2
 * libxtst6
 * libnss3
+* libcanberra-gtk-module
+* libcanberra-gtk3-module
 * Docker software repositories (optional)
 
 ## Step 1: Update software repositories
@@ -33,7 +35,7 @@ Allow the operation to complete.
 
 ## Step 2: Install requirements for Electron and Xvfb
 ```bash
-sudo apt install -y unzip libxi6 libgtk-3-0 libxss1 libgconf-2-4 libasound2 libxtst6 libnss3
+sudo apt install -y unzip libxi6 libgtk-3-0 libxss1 libgconf-2-4 libasound2 libxtst6 libnss3 libcanberra-gtk-module libcanberra-gtk3-module
 ```
 
 ## Step 3: Install Xvfb
@@ -110,7 +112,7 @@ Environment variables
  * `port` - Integer, port for proxy. (Example: 8080)
  * `user` and `pass` - Basic auth config for the proxy server. (Default: \`\` in both variables)
  * `windows` - Integer, number of bot instances to run. (Default: 1)
- * `time` - Integer, Max session time parameter value in minutes. (Default: 3 minutes in 6 pages)
+ * `time` - Integer, Max session time parameter value in seconds. (Default: 3 seconds per page and 5 Pages to run through)
 
 Basic usage with Xvfb enabled and proxy disabled (IP of the server)
 -----
@@ -149,7 +151,7 @@ Debug usage Without Xvfb (Graphic Card Needed)
 
 ```bash
 #  Run the traffic bot with Debug enabled
-DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2 3>log.txt
+DEBUG=nightmare*,electron* node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 19011 --user lucas --pass veneno --windows 1 --time 4 3>log.txt
 ```
 
 Crontab at every minute
