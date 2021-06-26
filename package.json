@@ -1,0 +1,46 @@
+{
+  "name": "veneno-traffic-bot",
+  "version": "1.0.1",
+  "description": "This script generates traffic for websites using a Tor Proxy Pool or any proxy server for which you desire.",
+  "main": "index.js",
+  "dependencies": {
+    "electron": "^13.1.2",
+    "jquery": "^3.6.0",
+    "nightmare": "^2.8.0",
+    "platform": "^1.3.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node index.js --url https://iphub.info/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucasveneno/trafficbot.git"
+  },
+  "keywords": [
+    "nodejs",
+    "javascript",
+    "ruby",
+    "bot",
+    "http",
+    "privacy",
+    "https",
+    "proxy",
+    "seo",
+    "proxy-server",
+    "seotools",
+    "seo-optimization",
+    "useragent",
+    "traffic-generation",
+    "nightmarejs",
+    "traffic-generator",
+    "seo-tools",
+    "traffic-bot"
+  ],
+  "author": "Lucas Coelho de Oliveira Lima",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lucasveneno/trafficbot/issues"
+  },
+  "homepage": "https://github.com/lucasveneno/trafficbot#readme"
+}
