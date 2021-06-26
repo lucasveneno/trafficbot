@@ -23,7 +23,7 @@ let args = minimist(process.argv.slice(2), {
 		te : 'time'
 	},
 	default: {
-		url : 'https://iphub.info/', // Url to navigate
+		url : 'https://ppplayer.com/', // Url to navigate
 		proxy : '', // Proxy address 1.127.0.1, localhost or example.com
 		port : '', // Proxy port
 		user: '', // Proxy username
