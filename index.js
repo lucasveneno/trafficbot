@@ -151,20 +151,20 @@ const venenoTrafficBot = async id => {
 		.wait(15000)
 		.evaluate((miliseconds, blacklist, pagestonavigate) => {
 
-			function delay(delayInms) {
-				return new Promise(resolve => {
-					setTimeout(() => {
-						resolve(2);
-					}, delayInms);
-				});
-			}
+			// function delay(delayInms) {
+			// 	return new Promise(resolve => {
+			// 		setTimeout(() => {
+			// 			resolve(2);
+			// 		}, delayInms);
+			// 	});
+			// }
 
-			async function waitDelay(miliseconds) {
-				console.log('a');
-				console.log('waiting...')
-				let delayres = await delay(miliseconds);
-				console.log('b');
-			}
+			// async function waitDelay(miliseconds) {
+			// 	console.log('a');
+			// 	console.log('waiting...')
+			// 	let delayres = await delay(miliseconds);
+			// 	console.log('b');
+			// }
 
 			function getRandUrl(urls){
 				return urls[Math.floor(Math.random() * urls.length)].href;
@@ -185,33 +185,13 @@ const venenoTrafficBot = async id => {
 			let allLinks = document.links, randomUrl, link, urlToClick;
 
 			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)].href;
-			console.log(randomUrl);
-			document.location.href = randomUrl;
-			/*
-			$('document').ready(function(){
-				//let allLinks = this.links, randomUrl, link;
-			
-				console.log("before setInterval"); //called first
-				var tid = setInterval(function(){
-        			//called 5 times each time after one second  
-      				//before getting cleared by below timeout. 
+			console.log("GOTO: "+randomUrl);
 
-      				randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)].href;
-      				urlToClick = $('document').find('a[href*="'+randomUrl+'"]');
-					console.log(urlToClick);//.click();
-					console.log('a[href*="'+randomUrl+'"]');
-					console.log("I am setInterval");
-   				},1000); //delay is in milliseconds 
+			setTimeout(function(){
+				document.location.href = randomUrl;
+			}, miliseconds);
 
-  				console.log("after setInterval"); //called second
-
-  				setTimeout(function(){
-				     clearInterval(tid); //clear above interval after 5 seconds
-				 },5000);
-
-				});*/
-
-			}, miliseconds, blacklist, pagestonavigate)
+		}, miliseconds, blacklist, pagestonavigate)
 		.wait(100000)
 		.end()
 		.then(function (result) {
