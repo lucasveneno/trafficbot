@@ -55,7 +55,7 @@ const venenoTrafficBot = async id => {
 	let ua = obj.randomElement().ua;
 	let info = platform.parse(ua); // Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7.2; en; rv:2.0) Gecko/20100101 Firefox/4.0 Opera 11.52
 	let osFamily = info.os.family; // Android, IOS, Linux, etc..
-	let blacklist = ['https://ppplayer.com/search','https://ppplayer.com/login','https://ppplayer.com/register'];
+	let blacklist = ['https://ppplayer.com/public/search','https://ppplayer.com/search','https://ppplayer.com/login','https://ppplayer.com/register'];
 
 	// info.name; // 'Opera'
 	// info.version; // '11.52'
