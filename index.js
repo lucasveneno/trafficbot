@@ -150,29 +150,43 @@ const venenoTrafficBot = async id => {
 		.wait(miliseconds)
 		.evaluate((miliseconds, blacklist) => {
 			
-			let allLinks = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrl, index;
+			let allLinksA = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrlA, indexA;
 
-			for (index = 0; index < blacklist.length; ++index) {
-				allLinks = allLinks.filter(e => e !== blacklist[index]); 
+			for (indexA = 0; indexA < blacklist.length; ++indexA) {
+				allLinksA = allLinksA.filter(e => e !== blacklist[indexA]); 
 			}
 
-			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)];
-
-			document.location.href = randomUrl;
+			randomUrlA = allLinksA[Math.floor(Math.random() * allLinksA.length)];
+			console.log(randomUrlA);
+			document.location.href = randomUrlA;
 
 		}, miliseconds, blacklist)
 		.wait(miliseconds)
 		.evaluate((blacklist) => {
 
-			let allLinks = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrl, index;
+			let allLinksB = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrlB, indexB;
 
-			for (index = 0; index < blacklist.length; ++index) {
-				allLinks = allLinks.filter(e => e !== blacklist[index]); 
+			for (indexB = 0; indexB < blacklist.length; ++indexB) {
+				allLinksB = allLinksB.filter(e => e !== blacklist[indexB]); 
 			}
 
-			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)];
+			randomUrlB = allLinksB[Math.floor(Math.random() * allLinksB.length)];
+			console.log(randomUrlB);
+			document.location.href = randomUrlB;
 
-			document.location.href = randomUrl;
+		},blacklist)
+		.wait(miliseconds)
+		.evaluate((blacklist) => {
+
+			let allLinksC = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrlC, indexC;
+
+			for (indexC = 0; indexC < blacklist.length; ++indexC) {
+				allLinksC = allLinksC.filter(e => e !== blacklist[indexB]); 
+			}
+
+			randomUrlC = allLinksC[Math.floor(Math.random() * allLinksC.length)];
+			console.log(randomUrlC);
+			document.location.href = randomUrlC;
 
 		},blacklist)
 		.wait(miliseconds)
