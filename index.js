@@ -40,13 +40,18 @@ const venenoTrafficBot = async id => {
 
 	Array.prototype.randomElement = function () {
 		return this[Math.floor(Math.random() * this.length)];
-	}	
+	}
+
+	function randomTimeFromInterval(min, max) { // min and max included 
+		return (Math.floor(Math.random() * (max - min + 1) + min) * 6000) / 6;
+	}
 
 	let url = args.url, screenArray;
 	let proxy = args.proxy ? args.proxy + ':' + args.port : '';
 	let user = args.user;
 	let pass = args.pass;
-	let miliseconds = (args.time * 6000) / 6;
+	let miliseconds = (args.time == 'random') ? randomTimeFromInterval(60, 300) : (args.time * 6000) / 6;
+	
 	//let browsers = ['android-browser','chrome','firefox','internet-explorer','opera','safari'];
 	//let browser = browsers.randomElement();
 	//let userAgentObj = require("./useragent/"+browser+".json");
