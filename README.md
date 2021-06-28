@@ -139,12 +139,12 @@ Normal usage with environment variables and without Xvfb (Graphic Card Needed)
 node index.js --url https://ppplayer.com --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
 ```
 
-Normal usage (Random time mode) with environment variables and without Xvfb (Graphic Card Needed)
+Normal usage (Random time mode and referrals to url enable) with environment variables and without Xvfb (Graphic Card Needed)
 -----
 
 ```bash
 # Run the traffic bot
-node index.js --url https://ppplayer.com --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time random
+node index.js --url https://ppplayer.com --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time random --referrals true
 ```
 
 Normal usage without Xvfb (Graphic Card Needed) and proxy option with 3 minute session and only one window
