@@ -182,8 +182,8 @@ const venenoTrafficBot = async id => {
 				}
 			}
 			
-			let allLinks = document.links, randomUrl, link;
-
+			let allLinks = document.links, randomUrl, link, urlToClick;
+/*
 			$('document').ready(function(){
 				//let allLinks = this.links, randomUrl, link;
 			
@@ -193,7 +193,7 @@ const venenoTrafficBot = async id => {
       				//before getting cleared by below timeout. 
 
       				randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)].href;
-      				var urlToClick = $('document').find('a[href*="'+randomUrl+'"]');
+      				urlToClick = $('document').find('a[href*="'+randomUrl+'"]');
 					console.log(urlToClick);//.click();
 					console.log('a[href*="'+randomUrl+'"]');
 					console.log("I am setInterval");
@@ -205,7 +205,7 @@ const venenoTrafficBot = async id => {
 				     clearInterval(tid); //clear above interval after 5 seconds
 				 },5000);
 
-  			});
+  			});*/
 
 		}, miliseconds, blacklist, pagestonavigate)
 		.wait(100000)
