@@ -108,6 +108,7 @@ docker run -d -p 5566:5566 -p 2090:2090 -e haproxy_login=MySecureLogin \
 Environment variables
 -----
  * `url` - URL for navigation. (Default: https://ppplayer.com/)
+ * `referrals` - The referrals params thus sending traffic to you.
  * `proxy` - The proxy server IP or address that acts as an intermediary for requests. (Example: 127.0.0.1 - Default: '')
  * `port` - Integer, port for proxy. (Example: 8080)
  * `user` and `pass` - Basic auth config for the proxy server. (Default: \`\` in both variables)
