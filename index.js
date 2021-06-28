@@ -151,25 +151,6 @@ const venenoTrafficBot = async id => {
 		.wait(15000)
 		.evaluate((miliseconds, blacklist, pagestonavigate) => {
 
-			// function delay(delayInms) {
-			// 	return new Promise(resolve => {
-			// 		setTimeout(() => {
-			// 			resolve(2);
-			// 		}, delayInms);
-			// 	});
-			// }
-
-			// async function waitDelay(miliseconds) {
-			// 	console.log('a');
-			// 	console.log('waiting...')
-			// 	let delayres = await delay(miliseconds);
-			// 	console.log('b');
-			// }
-
-			function getRandUrl(urls){
-				return urls[Math.floor(Math.random() * urls.length)].href;
-			}
-
 			let index;
 
 			for (index = 0; index < blacklist.length; ++index) {
@@ -191,7 +172,12 @@ const venenoTrafficBot = async id => {
 			}, miliseconds);
 
 		}, miliseconds, blacklist, pagestonavigate)
-		.wait(100000)
+		.wait(miliseconds)
+		.evaluate(() => {
+
+
+		})
+		.wait(miliseconds)
 		.end()
 		.then(function (result) {
 			console.log("result: " + result);
