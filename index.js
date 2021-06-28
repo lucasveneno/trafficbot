@@ -162,17 +162,15 @@ const venenoTrafficBot = async id => {
 				}
 			}
 			
-			let allLinks = document.links, randomUrl;
+			let allLinks = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrl;
 
-			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)].href;
+			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)];
 
-			setTimeout(function(){
-				document.location.href = randomUrl;
-			}, miliseconds);
+			document.location.href = randomUrl;
 
 		}, miliseconds, blacklist)
 		.wait(miliseconds)
-		.evaluate((miliseconds, blacklist) => {
+		.evaluate((blacklist) => {
 
 			let index;
 
@@ -185,16 +183,13 @@ const venenoTrafficBot = async id => {
 
 				}
 			}
+
+			var allLinks = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrl;
 			
-			let allLinks = document.links, randomUrl;
+			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)];
+			document.location.href = randomUrl;
 
-			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)].href;
-
-			setTimeout(function(){
-				document.location.href = randomUrl;
-			}, miliseconds);
-
-		}, miliseconds, blacklist)
+		},blacklist)
 		.wait(miliseconds)
 		.end()
 		.then(function (result) {
