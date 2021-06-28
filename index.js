@@ -110,7 +110,7 @@ const venenoTrafficBot = async id => {
 		show: true
 	});
 
-	let gotourl, allLinks, addtourl;
+	let gotourl, addtourl;
 	let utm_source = ['','facebook','twitter','instagram','Bing','Yahoo','DuckDuckGo','LinkedIn','Reddit','','Quora']
 	let utm_medium = ['cpc', 'Organic'];
 	let utm_campaign = ['june', 'july'];
