@@ -115,7 +115,7 @@ const venenoTrafficBot = async id => {
 	let utm_source = ['','facebook','twitter','instagram','Bing','Yahoo','DuckDuckGo','LinkedIn','Reddit','','Quora']
 	let utm_medium = ['cpc', 'Organic'];
 	let utm_campaign = ['june', 'july'];
-	let utm_term = ['queridin','queridin+music','música', 'online', 'ouvir', 'transmissão', 'tocar', 'digital', 'álbum', 'artista', 'playlist'];
+	let utm_term = ['ppplayer','ppplayer+music','música', 'online', 'ouvir', 'transmissão', 'tocar', 'digital', 'álbum', 'artista', 'playlist'];
 
 	addtourl = utm_source != '' ? '?utm_source='+ utm_source.randomElement() : '';
 	addtourl = utm_source != '' && utm_medium != '' ? addtourl+'&utm_medium='+utm_medium.randomElement() : addtourl;
@@ -185,7 +185,6 @@ const venenoTrafficBot = async id => {
 			let allLinks = document.links, randomUrl, link, urlToClick;
 
 			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)].href;
-			console.log("GOTO: "+randomUrl);
 
 			setTimeout(function(){
 				document.location.href = randomUrl;
