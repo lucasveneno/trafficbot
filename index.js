@@ -157,7 +157,7 @@ const venenoTrafficBot = async id => {
 			}
 
 			randomUrlA = allLinksA[Math.floor(Math.random() * allLinksA.length)];
-			console.log(allLinksA);
+			//console.log(allLinksA);
 			document.location.href = randomUrlA;
 
 		}, miliseconds, blacklist)
@@ -171,7 +171,7 @@ const venenoTrafficBot = async id => {
 			}
 
 			randomUrlB = allLinksB[Math.floor(Math.random() * allLinksB.length)];
-			console.log(randomUrlB);
+			//console.log(randomUrlB);
 			document.location.href = randomUrlB;
 
 		},blacklist)
@@ -185,7 +185,7 @@ const venenoTrafficBot = async id => {
 			}
 
 			randomUrlC = allLinksC[Math.floor(Math.random() * allLinksC.length)];
-			console.log(randomUrlC);
+			//console.log(randomUrlC);
 			document.location.href = randomUrlC;
 
 		},blacklist)
@@ -199,8 +199,22 @@ const venenoTrafficBot = async id => {
 			}
 
 			randomUrlD = allLinksD[Math.floor(Math.random() * allLinksD.length)];
-			console.log(randomUrlD);
+			//console.log(randomUrlD);
 			document.location.href = randomUrlD;
+
+		},blacklist)
+		.wait(miliseconds)
+		.evaluate((blacklist) => {
+
+			let allLinksE = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrlE, indexE;
+
+			for (indexE = 0; indexE < blacklist.length; ++indexE) {
+				allLinksE = allLinksE.filter(e => e !== blacklist[indexE]); 
+			}
+
+			randomUrlE = allLinksE[Math.floor(Math.random() * allLinksE.length)];
+			//console.log(randomUrlE);
+			document.location.href = randomUrlE;
 
 		},blacklist)
 		.wait(miliseconds)
@@ -218,7 +232,5 @@ const venenoTrafficBot = async id => {
 }
 
 for (var i = 0; i < args.windows; i++) {
-
 	venenoTrafficBot(i).then(a => console.dir(a)).catch(e => console.error(e));
-	//console.log('#' + i);
 }
