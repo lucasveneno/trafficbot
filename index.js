@@ -138,12 +138,7 @@ const venenoTrafficBot = async id => {
 		await proxyNightmare
 		.authentication(user,pass)
 		.useragent(ua)
-		.goto(url)	
-		
-		// EXAMPLE TO CHANGE SOME SELECTOR ON PAGE
-		// .evaluate(() => {
-		// 	return document.querySelector('b').innerText.replace(/[^\d\.]/g, '');
-		// })
+		.goto(url)
 
 		// EXAMPLE TO INJECT SOME JAVASCRIPT CODE (IF PAGE ALREADY GOT JQUERY YOU DONT NEED IT)
 		//.inject('js', 'node_modules/jquery/dist/jquery.min.js')
