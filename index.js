@@ -47,7 +47,6 @@ const venenoTrafficBot = async id => {
 	let user = args.user;
 	let pass = args.pass;
 	let miliseconds = (args.time * 6000) / 6;
-	let pagestonavigate = 5;
 	//let browsers = ['android-browser','chrome','firefox','internet-explorer','opera','safari'];
 	//let browser = browsers.randomElement();
 	//let userAgentObj = require("./useragent/"+browser+".json");
@@ -148,8 +147,8 @@ const venenoTrafficBot = async id => {
 
 		// EXAMPLE TO INJECT SOME JAVASCRIPT CODE (IF PAGE ALREADY GOT JQUERY YOU DONT NEED IT)
 		//.inject('js', 'node_modules/jquery/dist/jquery.min.js')
-		.wait(15000)
-		.evaluate((miliseconds, blacklist, pagestonavigate) => {
+		.wait(miliseconds)
+		.evaluate((miliseconds, blacklist) => {
 
 			let index;
 
@@ -163,7 +162,7 @@ const venenoTrafficBot = async id => {
 				}
 			}
 			
-			let allLinks = document.links, randomUrl, link, urlToClick;
+			let allLinks = document.links, randomUrl;
 
 			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)].href;
 
@@ -171,12 +170,31 @@ const venenoTrafficBot = async id => {
 				document.location.href = randomUrl;
 			}, miliseconds);
 
-		}, miliseconds, blacklist, pagestonavigate)
+		}, miliseconds, blacklist)
 		.wait(miliseconds)
-		.evaluate(() => {
+		.evaluate((miliseconds, blacklist) => {
 
+			let index;
 
-		})
+			for (index = 0; index < blacklist.length; ++index) {
+				let element = document.querySelector('[href="'+blacklist[index]+'"]');
+
+				if(element !== null){			
+					element.parentNode.removeChild(element);
+				} else if (element == null){
+
+				}
+			}
+			
+			let allLinks = document.links, randomUrl;
+
+			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)].href;
+
+			setTimeout(function(){
+				document.location.href = randomUrl;
+			}, miliseconds);
+
+		}, miliseconds, blacklist)
 		.wait(miliseconds)
 		.end()
 		.then(function (result) {
