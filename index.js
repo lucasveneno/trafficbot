@@ -147,7 +147,7 @@ const venenoTrafficBot = async id => {
 		// })
 
 		// EXAMPLE TO INJECT SOME JAVASCRIPT CODE (IF PAGE ALREADY GOT JQUERY YOU DONT NEED IT)
-		.inject('js', 'node_modules/jquery/dist/jquery.min.js')
+		//.inject('js', 'node_modules/jquery/dist/jquery.min.js')
 		.wait(15000)
 		.evaluate((miliseconds, blacklist, pagestonavigate) => {
 
@@ -183,7 +183,11 @@ const venenoTrafficBot = async id => {
 			}
 			
 			let allLinks = document.links, randomUrl, link, urlToClick;
-/*
+
+			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)].href;
+			console.log(randomUrl);
+			document.location.href = randomUrl;
+			/*
 			$('document').ready(function(){
 				//let allLinks = this.links, randomUrl, link;
 			
@@ -205,9 +209,9 @@ const venenoTrafficBot = async id => {
 				     clearInterval(tid); //clear above interval after 5 seconds
 				 },5000);
 
-  			});*/
+				});*/
 
-		}, miliseconds, blacklist, pagestonavigate)
+			}, miliseconds, blacklist, pagestonavigate)
 		.wait(100000)
 		.end()
 		.then(function (result) {
