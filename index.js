@@ -123,13 +123,13 @@ const venenoTrafficBot = async id => {
 	let utm_campaign = ['june', 'july'];
 	let utm_term = ['ppplayer','ppplayer+music','música', 'online', 'ouvir', 'transmissão', 'tocar', 'digital', 'álbum', 'artista', 'playlist'];
 	
-	if(referrals){
+	if(args.referrals){
 		addtourl = utm_source != '' ? '?utm_source='+ utm_source.randomElement() : '';
 		addtourl = utm_source != '' && utm_medium != '' ? addtourl+'&utm_medium='+utm_medium.randomElement() : addtourl;
 		addtourl = utm_source != '' && utm_campaign != '' ? addtourl+'&utm_campaign='+utm_campaign.randomElement() : addtourl;
 		addtourl = utm_source != '' && utm_term != '' ? addtourl+'&utm_term='+utm_term.randomElement() : addtourl;
 	}
-	
+
 	url = addtourl != '' ? url + addtourl : url;
 	
 	console.log(`Now checking ${id}`);
