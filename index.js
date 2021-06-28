@@ -185,9 +185,8 @@ const venenoTrafficBot = async id => {
 			let allLinks = document.links, randomUrl, link;
 
 			$('document').ready(function(){
-				let allLinks = this.links, randomUrl, link;
-				
-
+				//let allLinks = this.links, randomUrl, link;
+			
 				console.log("before setInterval"); //called first
 				var tid = setInterval(function(){
         			//called 5 times each time after one second  
