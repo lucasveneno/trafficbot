@@ -20,7 +20,7 @@ let args = minimist(process.argv.slice(2), {
 		us : 'user',
 		ps : 'pass',
 		ws : 'windows',
-		te : 'time'
+		te : 'time',
 		re : 'referrals'
 	},
 	default: {
