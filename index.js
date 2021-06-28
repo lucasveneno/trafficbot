@@ -55,7 +55,7 @@ const venenoTrafficBot = async id => {
 	let ua = obj.randomElement().ua;
 	let info = platform.parse(ua); // Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7.2; en; rv:2.0) Gecko/20100101 Firefox/4.0 Opera 11.52
 	let osFamily = info.os.family; // Android, IOS, Linux, etc..
-	let blacklist = ['/account/settings','/pages/1/privacy', '/forgot-password', '/register', '/login'];
+	let blacklist = ['https://ppplayer.com/login','https://ppplayer.com/register'];
 
 	// info.name; // 'Opera'
 	// info.version; // '11.52'
@@ -149,20 +149,12 @@ const venenoTrafficBot = async id => {
 		//.inject('js', 'node_modules/jquery/dist/jquery.min.js')
 		.wait(miliseconds)
 		.evaluate((miliseconds, blacklist) => {
-
-			let index;
+			
+			let allLinks = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrl, index;
 
 			for (index = 0; index < blacklist.length; ++index) {
-				let element = document.querySelector('[href="'+blacklist[index]+'"]');
-
-				if(element !== null){			
-					element.parentNode.removeChild(element);
-				} else if (element == null){
-
-				}
+				allLinks = allLinks.filter(e => e !== blacklist[index]); 
 			}
-			
-			let allLinks = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrl;
 
 			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)];
 
@@ -172,21 +164,14 @@ const venenoTrafficBot = async id => {
 		.wait(miliseconds)
 		.evaluate((blacklist) => {
 
-			let index;
+			let allLinks = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrl, index;
 
 			for (index = 0; index < blacklist.length; ++index) {
-				let element = document.querySelector('[href="'+blacklist[index]+'"]');
-
-				if(element !== null){			
-					element.parentNode.removeChild(element);
-				} else if (element == null){
-
-				}
+				allLinks = allLinks.filter(e => e !== blacklist[index]); 
 			}
 
-			var allLinks = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrl;
-			
 			randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)];
+
 			document.location.href = randomUrl;
 
 		},blacklist)
