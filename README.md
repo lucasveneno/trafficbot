@@ -112,7 +112,7 @@ Environment variables
  * `port` - Integer, port for proxy. (Example: 8080)
  * `user` and `pass` - Basic auth config for the proxy server. (Default: \`\` in both variables)
  * `windows` - Integer, number of bot instances to run. (Default: 1)
- * `time` - Integer, Max session time parameter value in seconds. (Default: 3 seconds per page and 5 Pages to run through)
+ * `time` - Integer or string (--time random), max session time parameter value in seconds. (Default: 3 seconds per page and 5 Pages to run through, the random mode value in seconds is betwen 60 and 300 secs)
 
 Basic usage with Xvfb enabled and proxy disabled (IP of the server)
 -----
