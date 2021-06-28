@@ -157,7 +157,7 @@ const venenoTrafficBot = async id => {
 			}
 
 			randomUrlA = allLinksA[Math.floor(Math.random() * allLinksA.length)];
-			console.log(randomUrlA);
+			console.log(allLinksA);
 			document.location.href = randomUrlA;
 
 		}, miliseconds, blacklist)
