@@ -147,7 +147,7 @@ const venenoTrafficBot = async id => {
 			
 			let allLinksA = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrlA, indexA;
 
-			for (indexA = 0; indexA < blacklist.length; ++indexA) {
+			for (indexA = 0; indexA <= blacklist.length; ++indexA) {
 				allLinksA = allLinksA.filter(e => e !== blacklist[indexA]); 
 			}
 
@@ -161,8 +161,10 @@ const venenoTrafficBot = async id => {
 
 			let allLinksB = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrlB, indexB;
 
-			for (indexB = 0; indexB < blacklist.length; ++indexB) {
-				allLinksB = allLinksB.filter(e => e !== blacklist[indexB]); 
+			for (indexB = 0; indexB <= blacklist.length; ++indexB) {
+				allLinksB = allLinksB.filter(e => e !== blacklist[indexB]); 	
+				console.log(blacklist[indexB]);
+
 			}
 
 			randomUrlB = allLinksB[Math.floor(Math.random() * allLinksB.length)];
@@ -175,7 +177,7 @@ const venenoTrafficBot = async id => {
 
 			let allLinksC = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrlC, indexC;
 
-			for (indexC = 0; indexC < blacklist.length; ++indexC) {
+			for (indexC = 0; indexC <= blacklist.length; ++indexC) {
 				allLinksC = allLinksC.filter(e => e !== blacklist[indexC]); 
 			}
 
@@ -189,7 +191,7 @@ const venenoTrafficBot = async id => {
 
 			let allLinksD = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrlD, indexD;
 
-			for (indexD = 0; indexD < blacklist.length; ++indexD) {
+			for (indexD = 0; indexD <= blacklist.length; ++indexD) {
 				allLinksD = allLinksD.filter(e => e !== blacklist[indexD]); 
 			}
 
@@ -203,7 +205,7 @@ const venenoTrafficBot = async id => {
 
 			let allLinksE = Array.from(document.querySelectorAll("a")).map(a=>a.href), randomUrlE, indexE;
 
-			for (indexE = 0; indexE < blacklist.length; ++indexE) {
+			for (indexE = 0; indexE <= blacklist.length; ++indexE) {
 				allLinksE = allLinksE.filter(e => e !== blacklist[indexE]); 
 			}
 
