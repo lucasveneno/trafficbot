@@ -118,10 +118,10 @@ const venenoTrafficBot = async id => {
 	});
 
 	let gotourl, addtourl;
-	let utm_source = ['','facebook','twitter','instagram','Bing','Yahoo','DuckDuckGo','LinkedIn','Reddit','','Quora']
+	let utm_source = ['Google','facebook','twitter','instagram','Bing','Yahoo','DuckDuckGo','LinkedIn','Reddit','DuckDuckGo','Quora']
 	let utm_medium = ['cpc', 'Organic'];
-	let utm_campaign = ['june', 'july'];
-	let utm_term = ['ppplayer','ppplayer+music','música', 'online', 'ouvir', 'transmissão', 'tocar', 'digital', 'álbum', 'artista', 'playlist'];
+	let utm_campaign = ['', ''];
+	let utm_term = ['ppplayer','ppplayer+music','music', 'online', 'listen+online+music', 'ppplayer+online', 'play+music', 'digital', 'ppplayer+playlist', 'artist', 'playlist', 'ppplayer+web'];
 	
 	addtourl = utm_source != '' ? '?utm_source='+ utm_source.randomElement() : '';
 	addtourl = utm_source != '' && utm_medium != '' ? addtourl+'&utm_medium='+utm_medium.randomElement() : addtourl;
