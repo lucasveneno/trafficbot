@@ -4,7 +4,7 @@
   "description": "This script generates traffic for websites using a Tor Proxy Pool or any proxy server for which you desire.",
   "main": "index.js",
   "dependencies": {
-    "electron": "^13.1.2",
+    "electron": "^13.3.0",
     "jquery": "^3.6.0",
     "nightmare": "^2.8.0",
     "npm": "^7.19.0",
