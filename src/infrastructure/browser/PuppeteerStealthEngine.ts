@@ -304,13 +304,13 @@ export class PuppeteerStealthEngine implements BrowserEngine {
       for (const selector of consentSelectors) {
         let element;
         if (selector.startsWith('//')) {
-          const [handle] = await (this.page as any).$x(selector);
-          element = handle;
+          const handles = await this.page.$$(`::-p-xpath(${selector})`);
+          if (handles.length > 0) element = handles[0];
         } else if (selector.includes(':contains')) {
           const text = selector.match(/:contains\("(.+)"\)/)?.[1];
           if (text) {
-            const [handle] = await (this.page as any).$x(`//button[contains(., "${text}")]`);
-            element = handle;
+             const handles = await this.page.$$(`::-p-xpath(//button[contains(., "${text}")])`);
+             if (handles.length > 0) element = handles[0];
           }
         } else {
           element = await this.page.$(selector);
