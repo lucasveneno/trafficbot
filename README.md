@@ -142,25 +142,40 @@ _Note: Integration tests satisfy system-level dependencies for running a real br
 
 ## Configuration (.env)
 
-| Variable             | Default                    | Description                                        |
-| -------------------- | -------------------------- | -------------------------------------------------- |
-| `DEFAULT_URL`        | `https://lucasveneno.com/` | Initial target URL.                                |
-| `MAX_SESSIONS`       | `1`                        | Number of parallel browser instances.              |
-| `SESSION_TIME`       | `3`                        | Duration per session in minutes (or `random`).     |
-| `HEADLESS`           | `true`                     | Run without visible browser.                       |
-| `HUMAN_BEHAVIOR`     | `true`                     | Enable mouse movement and scrolling simulation.    |
-| `BEHAVIOR_INTENSITY` | `medium`                   | Interaction frequency (`low`, `medium`, `high`).   |
-| `PROXY_URL`          | -                          | Proxy server address (e.g., `socks5://127.0.0.1`). |
-| `PROXY_PORT`         | -                          | Proxy server port (e.g., `9050`).                  |
+| Variable              | Default                    | Description                                        |
+| --------------------- | -------------------------- | -------------------------------------------------- |
+| `DEFAULT_URL`         | `https://lucasveneno.com/` | Initial target URL.                                |
+| `MAX_SESSIONS`        | `1`                        | Number of parallel browser instances.              |
+| `SESSION_TIME`        | `3`                        | Duration per session in minutes (or `random`).     |
+| `HEADLESS`            | `true`                     | Run without visible browser.                       |
+| `HUMAN_BEHAVIOR`      | `true`                     | Enable mouse movement and scrolling simulation.    |
+| `BEHAVIOR_INTENSITY`  | `medium`                   | Interaction frequency (`low`, `medium`, `high`).   |
+| `PERSISTENT_SESSIONS` | `false`                    | Save browser profile, cookies, and cache.          |
+| `SESSIONS_DATA_DIR`   | `./sessions`               | Directory to store persistent browser profiles.    |
+| `PROXY_URL`           | -                          | Proxy server address (e.g., `socks5://127.0.0.1`). |
+| `PROXY_PORT`          | -                          | Proxy server port (e.g., `9050`).                  |
 
 ## Stealth & Anonymity
 
 The bot implements multiple layers of protection to bypass advanced detection:
 
-1.  **Canvas & WebGL Randomization**: Injects non-destructive noise into canvas data and spoofs GPU vendors/renderers (M1, NVIDIA, Intel).
-2.  **Modern User-Agents**: Uses a curated pool of **Chrome 140+ (2025/2026)** strings with randomized build/patch versions.
-3.  **Human Behavior Simulation**: Mimics real human interaction through randomized smooth scrolling and cursor movements.
-4.  **Hardware Spoofing**: Randomizes `deviceMemory`, `hardwareConcurrency`, and `navigator.platform`.
+1.  **Diamond Standard Hardening**:
+    - **AudioContext Masking**: Injects noise into audio frequency data to neutralize hardware-level identification.
+    - **Font & ClientRects Masking**: Perturbs font measurement and element geometry to break font-based fingerprinting.
+2.  **Contextual Behavior & Intelligence**:
+    - **Thinking Heatmaps**: Non-linear, randomized stay durations for each navigation step.
+    - **Weighted Link Selection**: Prioritizes logical navigation targets (About, Products, Pricing) over utility links.
+    - **Reading Simulation**: Realistic static pauses with micro-mouse nudges to mimic human reading patterns.
+3.  **Advanced Fingerprinting**:
+    - **Canvas & WebGL Randomization**: Injects non-destructive noise into canvas data and spoofs GPU vendors/renderers (M1, NVIDIA, Intel).
+    - **Modern User-Agents**: Uses a curated pool of **Chrome 140+ and Edge 140+ (2025/2026)** strings with dynamic version randomization.
+    - **Hardware Spoofing**: Randomizes `deviceMemory`, `hardwareConcurrency`, and `navigator.platform`.
+
+## Observability & Health
+
+- **Real-time CLI Dashboard**: Live feedback on active sessions, success rates, and average durations directly in your terminal.
+- **Proxy Reputation Monitoring**: Automated status checks against major IP blacklists to detect "burnt" proxy IPs.
+- **Structured Logging**: JSON-ready logs via Winston for integration with cloud observability platforms.
 
 ## Architecture
 

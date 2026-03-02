@@ -16,7 +16,9 @@
     "test:fingerprint": "ts-node scripts/test-fingerprint.ts"
   },
   "dependencies": {
+    "bullmq": "^5.70.1",
     "dotenv": "^16.3.1",
+    "ioredis": "^5.10.0",
     "minimist": "^1.2.8",
     "puppeteer": "^24.37.5",
     "puppeteer-extra": "^3.3.6",
@@ -25,6 +27,7 @@
     "zod": "^3.22.2"
   },
   "devDependencies": {
+    "@types/ioredis": "^4.28.10",
     "@types/jest": "^29.5.4",
     "@types/minimist": "^1.2.2",
     "@types/node": "^20.5.6",

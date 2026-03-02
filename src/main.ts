@@ -6,12 +6,20 @@ import { logger } from './infrastructure/logging/logger';
 import { Session } from './domain/entities/Session';
 import path from 'path';
 import { FingerprintService } from './infrastructure/browser/FingerprintService';
+import { MetricsService } from './infrastructure/monitoring/MetricsService';
+import { ReputationService } from './infrastructure/monitoring/ReputationService';
 
 async function bootstrap() {
   logger.info('Initializing Veneno Traffic Bot v2', { 
     env: Config.NODE_ENV,
     sessions: Config.MAX_SESSIONS 
   });
+
+  // Start Dashboard Loop
+  const metrics = MetricsService.getInstance();
+  const dashboardInterval = setInterval(() => {
+    metrics.printSummary();
+  }, 10000);
 
   const tasks: Promise<void>[] = [];
 
@@ -48,6 +56,8 @@ async function bootstrap() {
 
   logger.info(`Launched ${tasks.length} parallel traffic tasks`);
   await Promise.all(tasks);
+  clearInterval(dashboardInterval);
+  metrics.printSummary(); // Final report
   logger.info('All traffic tasks finished');
 }
 

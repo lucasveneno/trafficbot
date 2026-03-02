@@ -3,6 +3,8 @@ import { Session } from '../../domain/entities/Session';
 import { logger } from '../../infrastructure/logging/logger';
 import { Config } from '../../infrastructure/config/config';
 import { BehaviorService } from '../../infrastructure/browser/BehaviorService';
+import { MetricsService } from '../../infrastructure/monitoring/MetricsService';
+import { ReputationService } from '../../infrastructure/monitoring/ReputationService';
 
 export class TrafficOrchestrator {
   private blacklist = [
@@ -26,6 +28,12 @@ export class TrafficOrchestrator {
     });
 
     try {
+      const metrics = MetricsService.getInstance();
+      metrics.trackSessionStart();
+
+      // Check Proxy Reputation (Optional/Async)
+      ReputationService.checkIP(config.proxy?.server).catch((e: Error) => logger.debug('IP check deferred', { e }));
+
       await this.engine.init({
         userAgent: config.userAgent,
         viewport: config.viewport,
@@ -82,12 +90,15 @@ export class TrafficOrchestrator {
       }
       
       const actualDuration = Date.now() - startTime;
+      metrics.trackSessionEnd(true, actualDuration);
       logger.info('Session completed successfully', { 
         id: config.id, 
         actualDurationMs: actualDuration,
         targetDurationMs: config.durationMs
       });
     } catch (error: any) {
+      const actualDuration = Date.now() - startTime;
+      MetricsService.getInstance().trackSessionEnd(false, actualDuration);
       logger.error('Session execution failed', { 
         id: config.id, 
         error: error instanceof Error ? {
