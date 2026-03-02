@@ -18,18 +18,32 @@ export class BehaviorService {
     
     // Adjust probability based on intensity
     const thresholds = options.intensity === 'high' 
-      ? { scroll: 0.4, move: 0.8 } 
+      ? { scroll: 0.35, move: 0.7, pause: 0.9 } 
       : options.intensity === 'medium' 
-        ? { scroll: 0.3, move: 0.6 }
-        : { scroll: 0.1, move: 0.3 };
+        ? { scroll: 0.25, move: 0.5, pause: 0.8 }
+        : { scroll: 0.1, move: 0.2, pause: 0.7 };
 
     if (rand < thresholds.scroll) {
       await this.simulateScroll(engine);
     } else if (rand < thresholds.move) {
       await this.simulateMouseMove(engine, viewport);
+    } else if (rand < thresholds.pause) {
+      // Simulate "Reading" - long pause with micro-jitters
+      logger.debug('Simulating reading pause...');
+      const pauseDuration = Math.floor(Math.random() * 3000) + 2000;
+      const start = Date.now();
+      while (Date.now() - start < pauseDuration) {
+        // Occasional tiny mouse nudge while reading
+        if (Math.random() > 0.8) {
+          const nudgeX = Math.floor(Math.random() * 10) - 5;
+          const nudgeY = Math.floor(Math.random() * 10) - 5;
+          await engine.mouseMove(viewport.width / 2 + nudgeX, viewport.height / 2 + nudgeY);
+        }
+        await engine.wait(500);
+      }
     } else {
-      // Micro-wait to simulate thinking
-      await engine.wait(Math.floor(Math.random() * 2000) + 500);
+      // Micro-wait
+      await engine.wait(Math.floor(Math.random() * 500) + 100);
     }
   }
 

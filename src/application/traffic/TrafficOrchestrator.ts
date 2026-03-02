@@ -38,16 +38,29 @@ export class TrafficOrchestrator {
 
       await this.engine.navigate(config.url);
       
-      // Execute 4 steps of random navigation
-      const waitPerStep = Math.floor(config.durationMs / 5);
-      logger.debug('Starting navigation loop', { waitPerStep, humanBehavior: Config.HUMAN_BEHAVIOR });
+      await this.engine.navigate(config.url);
       
-      for (let i = 0; i < 4; i++) {
-        logger.debug(`Step ${i+1}/4: Waiting ${waitPerStep}ms...`);
+      // Execute 4 steps with randomized "Thinking Heatmaps" (non-linear stay times)
+      const numSteps = 4;
+      const totalLoopTime = Math.floor(config.durationMs * 0.8); // Reserve 20% for overhead/final wait
+      
+      // Generate randomized stay durations that sum to totalLoopTime
+      const stayWeights = Array.from({ length: numSteps }, () => Math.random() + 0.5);
+      const totalWeight = stayWeights.reduce((a, b) => a + b, 0);
+      const stayDurations = stayWeights.map(w => Math.floor((w / totalWeight) * totalLoopTime));
+
+      logger.debug('Starting navigation loop with Thinking Heatmaps', { 
+        stayDurations, 
+        humanBehavior: Config.HUMAN_BEHAVIOR 
+      });
+      
+      for (let i = 0; i < numSteps; i++) {
+        const currentStay = stayDurations[i];
+        logger.info(`Step ${i+1}/${numSteps}: Staying for ${currentStay}ms...`);
         
         if (Config.HUMAN_BEHAVIOR) {
           const stepStart = Date.now();
-          while (Date.now() - stepStart < waitPerStep) {
+          while (Date.now() - stepStart < currentStay) {
             await BehaviorService.simulateRandomAction(
               this.engine, 
               config.viewport, 
@@ -55,10 +68,10 @@ export class TrafficOrchestrator {
             );
           }
         } else {
-          await this.engine.wait(waitPerStep);
+          await this.engine.wait(currentStay);
         }
 
-        await this.performRandomClick();
+        await this.performContextualClick();
       }
 
       // Final wait to ensure total session duration matches target
@@ -88,16 +101,50 @@ export class TrafficOrchestrator {
     }
   }
 
-  private async performRandomClick(): Promise<void> {
-    await this.engine.evaluate((blacklist) => {
-      const allLinks = Array.from(document.querySelectorAll("a"))
-        .map(a => a.href)
-        .filter(href => href && !blacklist.some((b: string) => href.includes(b)));
+  private async performContextualClick(): Promise<void> {
+    const clickResult = await this.engine.evaluate((blacklist) => {
+      const HIGH_VALUE = ['about', 'product', 'service', 'feature', 'price', 'blog', 'case', 'contact'];
+      const LOW_VALUE = ['login', 'register', 'signin', 'signup', 'terms', 'privacy', 'policy', 'legal'];
 
-      if (allLinks.length > 0) {
-        const randomUrl = allLinks[Math.floor(Math.random() * allLinks.length)];
-        window.location.href = randomUrl;
+      const links = Array.from(document.querySelectorAll("a"))
+        .filter(a => {
+          const href = a.href;
+          return href && !blacklist.some((b: string) => href.includes(b)) && href.startsWith(window.location.origin);
+        })
+        .map(a => {
+          const text = (a.innerText || a.title || "").toLowerCase().trim();
+          let score = 10; // Base score
+          
+          if (HIGH_VALUE.some(k => text.includes(k))) score += 20;
+          if (LOW_VALUE.some(k => text.includes(k))) score -= 5;
+          
+          // Surface area bonus (prefer larger elements/buttons)
+          const rect = a.getBoundingClientRect();
+          score += Math.min(rect.width * rect.height / 1000, 10);
+
+          return { href: a.href, score, text };
+        });
+
+      if (links.length === 0) return null;
+
+      // Weighted random selection
+      const totalScore = links.reduce((sum, l) => sum + l.score, 0);
+      let rand = Math.random() * totalScore;
+      
+      for (const link of links) {
+        rand -= link.score;
+        if (rand <= 0) {
+          window.location.href = link.href;
+          return { href: link.href, text: link.text };
+        }
       }
+      return null;
     }, this.blacklist);
+
+    if (clickResult) {
+      logger.info(`Contextual click performed: "${clickResult.text}" -> ${clickResult.href}`);
+    } else {
+      logger.debug('No suitable links found for contextual click.');
+    }
   }
 }
