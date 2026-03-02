@@ -55,10 +55,19 @@ export class UserAgentService {
    * Example: Chrome/145.0.0.0 -> Chrome/145.0.4285.12
    */
   private static randomizeVersion(ua: string): string {
-    return ua.replace(/Chrome\/(\d+)\.0\.0\.0/, (_, major) => {
-      const build = Math.floor(Math.random() * 5000) + 1000;
-      const patch = Math.floor(Math.random() * 200);
+    const build = Math.floor(Math.random() * 5000) + 1000;
+    const patch = Math.floor(Math.random() * 200);
+
+    // Randomize Chrome version
+    let randomized = ua.replace(/Chrome\/(\d+)\.0\.0\.0/, (_, major) => {
       return `Chrome/${major}.0.${build}.${patch}`;
     });
+
+    // Also randomize Edg version if present
+    randomized = randomized.replace(/Edg\/(\d+)\.0\.0\.0/, (_, major) => {
+      return `Edg/${major}.0.${build}.${patch}`;
+    });
+
+    return randomized;
   }
 }
