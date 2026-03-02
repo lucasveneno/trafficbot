@@ -104,4 +104,18 @@ export class PuppeteerStealthEngine implements BrowserEngine {
       await this.browser.close();
     }
   }
+
+  async setExtraHeaders(headers: Record<string, string>): Promise<void> {
+    if (!this.page) throw new Error('Engine not initialized');
+    await this.page.setExtraHTTPHeaders(headers);
+  }
+
+  async setGeolocation(latitude: number, longitude: number): Promise<void> {
+    if (!this.page) throw new Error('Engine not initialized');
+    await this.page.setGeolocation({ latitude, longitude, accuracy: 100 });
+    
+    // Also need to grant permission for geolocation
+    const context = this.browser!.defaultBrowserContext();
+    await context.overridePermissions(this.page.url(), ['geolocation']);
+  }
 }

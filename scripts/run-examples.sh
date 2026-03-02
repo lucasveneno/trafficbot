@@ -18,10 +18,11 @@ echo "6) Seeding (Visible Browser, Persistent Profile)"
 echo "7) Human Behavior Simulation (Headed, High Intensity)"
 echo "8) Distributed Worker (Wait for tasks from Redis)"
 echo "9) Distributed Producer (Add 5 tasks to Redis)"
+echo "10) Organic Search Simulation (via Google/Bing)"
 echo "q) Quit"
 echo "------------------------------------------------"
 
-read -p "Enter choice [1-9 or q]: " choice
+read -p "Enter choice [1-10 or q]: " choice
 
 case $choice in
   1)
@@ -65,6 +66,11 @@ case $choice in
     echo "Running as Distributed Producer..."
     echo "Adding 5 sessions to the task queue..."
     NODE_ENV=production BOT_ROLE=producer DEFAULT_URL=https://lucasveneno.com/ MAX_SESSIONS=5 npm start
+    ;;
+  10)
+    echo "Running Organic Search Simulation (via Google/Bing)..."
+    echo "This will search for 'traffic bot' and then navigate to your site."
+    NODE_ENV=production ORGANIC_SEARCH=true SEARCH_KEYWORDS="traffic bot,github,ai agent" MAX_SESSIONS=1 HEADLESS=false BOT_ROLE=both npm start
     ;;
   q)
     exit 0

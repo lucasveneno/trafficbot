@@ -156,6 +156,10 @@ _Note: Integration tests satisfy system-level dependencies for running a real br
 | `PROXY_PORT`          | -                          | Proxy server port (e.g., `9050`).                  |
 | `BOT_ROLE`            | `both`                     | Execution role (`producer`, `worker`, `both`).     |
 | `REDIS_URL`           | `redis://127.0.0.1:6379`   | Redis connection URL for distributed queue.        |
+| `ORGANIC_SEARCH`      | `false`                    | Enable search engine navigation before target.     |
+| `SEARCH_KEYWORDS`     | -                          | Comma-separated list for organic search.           |
+| `REFERRER_POOL`       | -                          | Comma-separated custom referrers.                  |
+| `MATCH_GEOLOCATION`   | `false`                    | Match internal browser geo to proxy IP.            |
 
 ## Distributed Architecture & Scaling
 

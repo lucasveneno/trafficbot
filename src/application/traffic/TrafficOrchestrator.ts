@@ -34,6 +34,9 @@ export class TrafficOrchestrator {
       // Check Proxy Reputation (Optional/Async)
       ReputationService.checkIP(config.proxy?.server).catch((e: Error) => logger.debug('IP check deferred', { e }));
 
+      const { ReferrerService } = require('../../infrastructure/browser/ReferrerService');
+      const referrerService = new ReferrerService(logger);
+
       await this.engine.init({
         userAgent: config.userAgent,
         viewport: config.viewport,
@@ -44,7 +47,47 @@ export class TrafficOrchestrator {
         fingerprintScript: options.fingerprintScript
       });
 
-      await this.engine.navigate(config.url);
+      // 1. Geolocation Matching
+      if (Config.MATCH_GEOLOCATION && config.proxy) {
+        try {
+          // Fetch simple geo info from the proxy context (this assumes the bot can reach an external API)
+          // In a real scenario, we might want to cache this or use a static lookup
+          const response = await fetch('http://ip-api.com/json');
+          if (response.ok) {
+            const data: any = await response.json();
+            if (data.lat && data.lon) {
+              logger.info('Setting Geolocation to match Proxy', { lat: data.lat, lon: data.lon, city: data.city });
+              await this.engine.setGeolocation(data.lat, data.lon);
+            }
+          }
+        } catch (e) {
+          logger.debug('Geolocation matching failed, using browser default', { e });
+        }
+      }
+
+      // 2. Organic Search or Referrer Spoofing
+      if (Config.ORGANIC_SEARCH && Config.SEARCH_KEYWORDS.length > 0) {
+        const keyword = referrerService.getRandomKeyword(Config.SEARCH_KEYWORDS);
+        const { name, url: searchUrl } = referrerService.getRandomSearchUrl(keyword);
+        
+        logger.info(`Simulating Organic Search via ${name}`, { keyword, searchUrl });
+        await this.engine.navigate(searchUrl);
+        
+        // Brief wait to simulate "looking" at results
+        await this.engine.wait(2000 + Math.random() * 3000);
+        
+        // Navigate to target (this simulates the "click")
+        // We set the referer to the search engine
+        await this.engine.setExtraHeaders({ 'Referer': searchUrl });
+        await this.engine.navigate(config.url);
+      } else {
+        const referrer = referrerService.getRandomReferrer(Config.REFERRER_POOL);
+        if (referrer) {
+          logger.info(`Spoofing Referrer`, { referrer });
+          await this.engine.setExtraHeaders({ 'Referer': referrer });
+        }
+        await this.engine.navigate(config.url);
+      }
       
       // Execute 4 steps with randomized "Thinking Heatmaps" (non-linear stay times)
       const numSteps = 4;

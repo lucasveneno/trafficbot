@@ -21,6 +21,10 @@ const ConfigSchema = z.object({
   BEHAVIOR_INTENSITY: z.enum(['low', 'medium', 'high']).default('medium'),
   REDIS_URL: z.string().default('redis://127.0.0.1:6379'),
   BOT_ROLE: z.enum(['producer', 'worker', 'both']).default('both'),
+  ORGANIC_SEARCH: z.preprocess((val) => val === 'true', z.boolean()).default(false),
+  SEARCH_KEYWORDS: z.preprocess((val) => (val ? String(val).split(',') : []), z.array(z.string())).default([]),
+  REFERRER_POOL: z.preprocess((val) => (val ? String(val).split(',') : []), z.array(z.string())).default([]),
+  MATCH_GEOLOCATION: z.preprocess((val) => val === 'true', z.boolean()).default(false),
 });
 
 export const Config = ConfigSchema.parse(process.env);

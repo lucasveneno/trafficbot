@@ -24,4 +24,6 @@ export interface BrowserEngine {
   mouseMove(x: number, y: number): Promise<void>;
   click(x: number, y: number): Promise<void>;
   close(): Promise<void>;
+  setExtraHeaders(headers: Record<string, string>): Promise<void>;
+  setGeolocation(latitude: number, longitude: number): Promise<void>;
 }
