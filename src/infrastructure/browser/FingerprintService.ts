@@ -120,6 +120,49 @@ export class FingerprintService {
 
         if (window.CanvasRenderingContext2D) manipulateCanvas(CanvasRenderingContext2D.prototype);
         
+        // --- Audio Fingerprint Protection ---
+        const maskAudio = () => {
+          if (!window.AudioBuffer) return;
+          const getChannelData = AudioBuffer.prototype.getChannelData;
+          AudioBuffer.prototype.getChannelData = function() {
+            const res = getChannelData.apply(this, arguments);
+            // Add deterministic noise to the frequency data
+            if (res && res.length > 100) {
+              for (let i = 0; i < 10; i++) {
+                res[res.length - 1 - i] += 0.0000001;
+              }
+            }
+            return res;
+          };
+        };
+        maskAudio();
+
+        // --- Font & Geometry Protection (ClientRects) ---
+        const maskFonts = () => {
+          const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+          const originalOffsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
+
+          if (originalOffsetWidth && originalOffsetWidth.get) {
+            Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+              get: function() {
+                const val = originalOffsetWidth.get.apply(this);
+                // Return slightly perturbed fractional value to break precise measurement
+                return val > 0 ? val + (Math.random() * 0.001) : val;
+              }
+            });
+          }
+
+          if (originalOffsetHeight && originalOffsetHeight.get) {
+            Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+              get: function() {
+                const val = originalOffsetHeight.get.apply(this);
+                return val > 0 ? val + (Math.random() * 0.001) : val;
+              }
+            });
+          }
+        };
+        maskFonts();
+        
         // --- WebDriver/Automation Protection ---
         overwriteProperty(navigator, 'webdriver', false);
       })();
