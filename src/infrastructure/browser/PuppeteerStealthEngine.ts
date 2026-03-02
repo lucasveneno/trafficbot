@@ -43,8 +43,8 @@ export class PuppeteerStealthEngine implements BrowserEngine {
     }
 
     this.browser = await (puppeteer as any).launch(launchOptions);
-
-    this.page = await this.browser!.newPage();
+    const pages = await this.browser!.pages();
+    this.page = pages.length > 0 ? pages[0] : await this.browser!.newPage();
 
     if (options.userAgent) {
       await this.page.setUserAgent(options.userAgent);
