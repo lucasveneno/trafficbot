@@ -154,6 +154,24 @@ _Note: Integration tests satisfy system-level dependencies for running a real br
 | `SESSIONS_DATA_DIR`   | `./sessions`               | Directory to store persistent browser profiles.    |
 | `PROXY_URL`           | -                          | Proxy server address (e.g., `socks5://127.0.0.1`). |
 | `PROXY_PORT`          | -                          | Proxy server port (e.g., `9050`).                  |
+| `BOT_ROLE`            | `both`                     | Execution role (`producer`, `worker`, `both`).     |
+| `REDIS_URL`           | `redis://127.0.0.1:6379`   | Redis connection URL for distributed queue.        |
+
+## Distributed Architecture & Scaling
+
+V2.1.0 supports massive horizontal scaling across multiple nodes using a centralized **Redis** task queue.
+
+### Roles:
+
+- **Producer**: Generates traffic sessions and pushes them to the queue. Does not launch browsers.
+- **Worker**: Listens to the queue and executes browser sessions. Optimized for high-session nodes.
+- **Both** (Default): Acts as both producer and worker on a single node.
+
+### Deployment Scaling:
+
+1. **Infrastructure**: Deploy one Redis instance (standard in `docker-compose.yml`).
+2. **Producers**: Deploy one instance with `BOT_ROLE=producer`.
+3. **Workers**: Deploy as many instances as needed with `BOT_ROLE=worker`. Each worker will pull tasks from the shared queue according to its `MAX_SESSIONS` capacity.
 
 ## Stealth & Anonymity
 

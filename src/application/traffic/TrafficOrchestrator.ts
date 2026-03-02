@@ -46,8 +46,6 @@ export class TrafficOrchestrator {
 
       await this.engine.navigate(config.url);
       
-      await this.engine.navigate(config.url);
-      
       // Execute 4 steps with randomized "Thinking Heatmaps" (non-linear stay times)
       const numSteps = 4;
       const totalLoopTime = Math.floor(config.durationMs * 0.8); // Reserve 20% for overhead/final wait
@@ -110,6 +108,33 @@ export class TrafficOrchestrator {
     } finally {
       await this.engine.close();
     }
+  }
+
+  /**
+   * Helper to run a session from a simplified Job Data structure
+   */
+  async runFromJob(jobId: string, data: any): Promise<void> {
+    const { FingerprintService } = require('../../infrastructure/browser/FingerprintService');
+    const fingerprint = FingerprintService.generate();
+    
+    const session = new Session({
+      id: jobId,
+      url: data.url,
+      userAgent: fingerprint.userAgent,
+      viewport: fingerprint.viewport,
+      durationMs: data.durationMinutes * 60000,
+      proxy: data.proxy ? {
+        server: `${data.proxy.host}:${data.proxy.port}`,
+        username: data.proxy.username,
+        password: data.proxy.password
+      } : undefined
+    });
+
+    await this.run(session, {
+      headless: Config.HEADLESS,
+      platform: fingerprint.platform,
+      fingerprintScript: FingerprintService.getInjectionScript(fingerprint)
+    });
   }
 
   private async performContextualClick(): Promise<void> {

@@ -19,6 +19,8 @@ const ConfigSchema = z.object({
   REFERRALS: z.enum(['yes', 'no']).default('no'),
   HUMAN_BEHAVIOR: z.preprocess((a) => a === 'true' || a === '1' || a === true, z.boolean()).default(true),
   BEHAVIOR_INTENSITY: z.enum(['low', 'medium', 'high']).default('medium'),
+  REDIS_URL: z.string().default('redis://127.0.0.1:6379'),
+  BOT_ROLE: z.enum(['producer', 'worker', 'both']).default('both'),
 });
 
 export const Config = ConfigSchema.parse(process.env);

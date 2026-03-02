@@ -8,12 +8,20 @@ services:
       - LOG_LEVEL=info
       - DEFAULT_URL=${DEFAULT_URL:-https://lucasveneno.com/}
       - MAX_SESSIONS=${MAX_SESSIONS:-5}
+      - REDIS_URL=redis://redis:6379
       - PROXY_URL=tor-proxy
       - PROXY_PORT=8118
       - PROXY_USER=admin
       - PROXY_PASS=admin
     depends_on:
       - tor-proxy
+      - redis
+    restart: always
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
     restart: always
 
   tor-proxy:
