@@ -1,5 +1,6 @@
 import { TrafficOrchestrator } from './application/traffic/TrafficOrchestrator';
 import { PuppeteerStealthEngine } from './infrastructure/browser/PuppeteerStealthEngine';
+import { Session } from './domain/entities/Session';
 import { Config } from './infrastructure/config/config';
 import { logger } from './infrastructure/logging/logger';
 import { MetricsService } from './infrastructure/monitoring/MetricsService';
@@ -77,11 +78,46 @@ async function bootstrap() {
 
   // Execute Roles
   if (Config.BOT_ROLE === 'producer' || Config.BOT_ROLE === 'both') {
-    await runProducer();
+    if (QueueService.isDistributedEnabled()) {
+      await runProducer();
+    } else if (Config.BOT_ROLE === 'both') {
+      logger.info('Role: BOTH - Redis unavailable, falling back to local sequential execution');
+      const engine = new PuppeteerStealthEngine();
+      const orchestrator = new TrafficOrchestrator(engine);
+
+      const { FingerprintService } = require('./infrastructure/browser/FingerprintService');
+      
+      for (let i = 0; i < Config.MAX_SESSIONS; i++) {
+        const fingerprint = FingerprintService.generate();
+        await orchestrator.run(new Session({
+          id: `local-${i}`,
+          url: Config.DEFAULT_URL,
+          userAgent: fingerprint.userAgent,
+          viewport: fingerprint.viewport,
+          durationMs: (Config.SESSION_TIME === 'random' ? 3 : parseInt(Config.SESSION_TIME)) * 60000,
+          proxy: Config.PROXY_URL ? {
+            server: `${Config.PROXY_URL}:${Config.PROXY_PORT}`,
+            username: Config.PROXY_USER,
+            password: Config.PROXY_PASS
+          } : undefined,
+          userDataDir: Config.PERSISTENT_SESSIONS ? `${Config.SESSIONS_DATA_DIR}/session-${i}` : undefined
+        }), {
+          headless: Config.HEADLESS,
+          platform: fingerprint.platform,
+          fingerprintScript: FingerprintService.getInjectionScript(fingerprint)
+        });
+      }
+    } else {
+      logger.error('Role: PRODUCER - Redis unavailable, cannot add tasks.');
+    }
   }
 
   if (Config.BOT_ROLE === 'worker' || Config.BOT_ROLE === 'both') {
-    await runWorker();
+    if (QueueService.isDistributedEnabled()) {
+      await runWorker();
+    } else if (Config.BOT_ROLE === 'worker') {
+      logger.error('Role: WORKER - Redis unavailable, cannot listen for tasks.');
+    }
   }
 
   // Graceful shutdown

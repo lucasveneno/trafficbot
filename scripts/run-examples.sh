@@ -19,10 +19,12 @@ echo "7) Human Behavior Simulation (Headed, High Intensity)"
 echo "8) Distributed Worker (Wait for tasks from Redis)"
 echo "9) Distributed Producer (Add 5 tasks to Redis)"
 echo "10) Organic Search Simulation (via Google/Bing)"
+echo "11) Organic Search (No Proxy - Uses YOUR IP)"
+echo "12) Targeted Google Search (Custom Keyword + URL)"
 echo "q) Quit"
 echo "------------------------------------------------"
 
-read -p "Enter choice [1-10 or q]: " choice
+read -p "Enter choice [1-12 or q]: " choice
 
 case $choice in
   1)
@@ -71,6 +73,17 @@ case $choice in
     echo "Running Organic Search Simulation (via Google/Bing)..."
     echo "This will search for 'traffic bot' and then navigate to your site."
     NODE_ENV=production ORGANIC_SEARCH=true SEARCH_KEYWORDS="traffic bot,github,ai agent" MAX_SESSIONS=1 HEADLESS=false BOT_ROLE=both npm start
+    ;;
+  11)
+    echo "Running Organic Search Simulation (NO PROXY)..."
+    echo "This will use your own internet IP address."
+    NODE_ENV=production ORGANIC_SEARCH=true SEARCH_KEYWORDS="traffic bot,github,ai agent" PROXY_URL="" PROXY_PORT="" MAX_SESSIONS=1 HEADLESS=false BOT_ROLE=both npm start
+    ;;
+  12)
+    echo "Running Targeted Google Search Simulation..."
+    read -p "Enter keyword to search for: " custom_keyword
+    read -p "Enter target destination URL: " custom_url
+    NODE_ENV=production ORGANIC_SEARCH=true SEARCH_KEYWORDS="$custom_keyword" DEFAULT_URL="$custom_url" MAX_SESSIONS=1 HEADLESS=false BOT_ROLE=both npm start
     ;;
   q)
     exit 0
