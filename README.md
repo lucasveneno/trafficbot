@@ -1,195 +1,175 @@
-## VENENO TRAFFIC BOT (With a simple rotating Tor Proxy Server)
-This script generates traffic for websites using a Tor Proxy Pool or any proxy server for which you desire
+# Veneno Traffic Bot v2
 
-## Prerequisites
+Enterprise-grade stealth traffic generation framework.
 
-* Ubuntu 18.04+ 64-bit operating system
-* A user account with sudo privileges
-* Command line / terminal (CTRL-ALT-T or Applications menu > Accessories > Terminal)
-* Xvfb
-* NodeJS
-* unzip
-* libxi6
-* libgtk-3-0
-* libxss1
-* libgconf-2-4
-* libasound2
-* libxtst6
-* libnss3
-* libcanberra-gtk-module
-* libcanberra-gtk3-module
-* Docker software repositories (optional)
+## Quick Start (Docker)
 
-## Step 1: Update software repositories
-
-As usual, it’s a good idea to update the local database of software to make sure you’ve got access to the latest revisions.
-
-Therefore, open a terminal window and type:
+1. Clone the repository.
+2. Configure `.env` (use `.env.example` as template).
+3. Run with Docker Compose:
+   ```bash
+   docker-compose up --build
+   ```
 
 ```bash
-sudo apt-get update
+sudo npm run setup:linux
 ```
 
-Allow the operation to complete.
+### Windows Setup (CMD/PowerShell)
 
+If running on Windows:
 
-## Step 2: Install requirements for Electron and Xvfb
-```bash
-sudo apt install -y unzip libxi6 libgtk-3-0 libxss1 libgconf-2-4 libasound2 libxtst6 libnss3 libcanberra-gtk-module libcanberra-gtk3-module
-```
+1. Ensure **Chrome for Testing** is installed: `npm run download-browsers`.
+2. The bot uses `path.join` for cross-platform file paths.
+3. If using persistent sessions, ensure the `SESSIONS_DATA_DIR` path is valid for Windows.
+4. To run examples on Windows, use **Git Bash** (recommended) or manually set environment variables in CMD:
+   ```cmd
+   set NODE_ENV=production&& set MAX_SESSIONS=1&& npm start
+   ```
 
-## Step 3: Install Xvfb
+## Manual Setup
 
-Here Xvfb (X virtual framebuffer) is an in-memory display server for a UNIX-like operating system (e.g., Linux). It implements the X11 display server protocol without any display. This is helpful for CLI applications like CI service.
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Build the project:
+   ```bash
+   npm run build
+   ```
+3. Run in Production:
+   ```bash
+   npm start
+   ```
 
-```bash
-sudo apt-get install -y xvfb
-```
-
-## Step 4: Install NodeJS or NPM
-```bash
-sudo apt-get install nodejs
-```
-```bash
-sudo apt-get install npm
-```
-## Step 5: Install Docker
-
-To install Docker on Ubuntu, in the terminal window enter the command:
-
-```bash
-snap docker install
-```
-or
+To see the bot in action with different pre-set configurations (High Concurrency, Targeted URLs, Human Behavior Simulation, etc.), run the interactive example script:
 
 ```bash
-apt install docker.io
+npm run run:examples # Choice 7 for Behavior Simulation
 ```
 
-## Step 6: Run the Proxy Server
+_Note: In production mode, the bot uses the modern `headless: 'new'` engine and optimized flags for stability._
 
-So now we gonna create a proxy server
+## Browser Seeding & Visibility
+
+"Seeding" allows the bot to maintain a persistent reputation by saving cookies and cache across runs.
+
+### 1. Seeding (Persistent Profiles)
+
+Enable `PERSISTENT_SESSIONS` to save browser state to a local directory:
+
+```env
+PERSISTENT_SESSIONS=true
+SESSIONS_DATA_DIR=./sessions
+```
+
+### 2. Visibility (Headed Mode)
+
+Set `HEADLESS=false` to see the browser window while the bot is running (not recommended for large scales):
+
+```env
+HEADLESS=false
+```
+
+To run a guided seeding session immediately:
 
 ```bash
-# build docker container
-docker build -t zeta0/alpine-tor:latest .
-
-# ... or pull docker container
-docker pull zeta0/alpine-tor:latest
-
-# start docker container
-docker run -d -p 5566:5566 -p 2090:2090 -e tors=25 zeta0/alpine-tor
-
-# start docker with privoxy enabled and exposed
-docker run -d -p 8118:8118 -p 2090:2090 -e tors=25 -e privoxy=1 zeta0/alpine-tor
-
-# test with ...
-curl --socks5 localhost:5566 http://httpbin.org/ip
-
-# or if privoxy enabled ...
-curl --proxy localhost:8118 http://httpbin.org/ip
-
-# or to run chromium with your new found proxy
-chromium --proxy-server="http://localhost:8118" \
-    --host-resolver-rules="MAP * 0.0.0.0 , EXCLUDE localhost"
-
-# monitor
-# auth login:admin
-# auth pass:admin
-http://localhost:2090 or http://admin:admin@localhost:2090
-
-# start docket container with new auth
-docker run -d -p 5566:5566 -p 2090:2090 -e haproxy_login=MySecureLogin \
-    -e haproxy_pass=MySecurePassword zeta0/alpine-tor
+npm run run:examples # Select Option 6
 ```
 
-## Step 7: Usage Of Veneno Traffic Bot
+### 3. macOS Stability (Apple Silicon)
 
-Environment variables
------
- * `url` - URL for navigation. (Default: https://ppplayer.com/)
- * `referrals` - The referrals params thus sending traffic to you (Default: no).
- * `proxy` - The proxy server IP or address that acts as an intermediary for requests. (Example: 127.0.0.1 - Default: '')
- * `port` - Integer, port for proxy. (Example: 8080)
- * `user` and `pass` - Basic auth config for the proxy server. (Default: \`\` in both variables)
- * `windows` - Integer, number of bot instances to run. (Default: 1)
- * `time` - Integer or string (--time random), max session time parameter value in seconds. (Default: 3 seconds per page and 5 Pages to run through, the random mode value in seconds is betwen 60 and 300 secs)
+If you encounter "crash info version 7" or "browser launch failed" on macOS:
 
-Basic usage with Xvfb enabled and proxy disabled (IP of the server)
------
+1. Ensure you have the **native ARM64** browser: `npm run download-browsers`.
+2. The bot is architecture-aware and will automatically use optimized stability flags for Apple Silicon.
+3. If issues persist, try clearing old session data: `rm -rf sessions/*`.
+
+## Proxy Configuration
+
+The bot supports HTTP/SOCKS proxies for anonymity.
+
+### 1. Using Tor (Docker - Recommended)
+
+The `docker-compose.yml` includes a built-in Tor proxy pool. When running with Docker, the bot is automatically configured to use Tor with rotating IPs.
 
 ```bash
-# Run the traffic bot
-xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://ppplayer.com/ --windows 1 --time 2
+docker-compose up
 ```
 
-Normal usage with environment variables and Xvfb enabled
------
+### 2. Using Local Tor (macOS - Manual Setup)
 
-```bash
-# Run the traffic bot
-xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony index.js --url https://ppplayer.com/ --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
-```
+To use Tor directly on your Mac without Docker:
 
-Normal usage with environment variables and without Xvfb (Graphic Card Needed)
------
+1. **Install Tor via Homebrew**:
+   ```bash
+   brew install tor
+   ```
+2. **Start the Tor service**:
+   ```bash
+   brew services start tor
+   ```
+3. **Configure `.env`**:
+   ```env
+   PROXY_URL=socks5://127.0.0.1
+   PROXY_PORT=9050
+   ```
 
-```bash
-# Run the traffic bot
-node index.js --url https://ppplayer.com --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time 2
-```
+_Note: The bot supports SOCKS5 natively. Ensure you use the `socks5://` prefix._
 
-Normal usage (Random time mode and referrals to url enable) with environment variables and without Xvfb (Graphic Card Needed)
------
+## Testing
 
-```bash
-# Run the traffic bot
-node index.js --url https://ppplayer.com --proxy 127.0.0.1 --port 8080 --user lucas --pass veneno --windows 1 --time random --referrals yes
-```
+The project includes a comprehensive test suite using Jest.
 
-Normal usage without Xvfb (Graphic Card Needed) and proxy option with 3 minute session and only one window
------
+1. **Run All Tests:**
 
-```bash
-# Run the traffic bot
-node index.js --url https://ppplayer.com/ --windows 1 --time 3 
-```
+   ```bash
+   npm test
+   ```
 
-Debug usage Without Xvfb (Graphic Card Needed)
------
+2. **Run Only Unit Tests (Configuration):**
 
-```bash
-#  Run the traffic bot with Debug enabled
-DEBUG=nightmare*,electron* node index.js --url https://ppplayer.com --windows 1 --time 4 3>log.txt
-```
+   ```bash
+   npx jest src/infrastructure/config/config.test.ts
+   ```
 
-```bash
-#  Run the traffic bot with Proxy and Debug enabled
-DEBUG=nightmare*,electron* node index.js --url https://ppplayer.com --proxy 127.0.0.1 --port 19011 --user lucas --pass veneno --windows 1 --time 4 3>log.txt
-```
+3. **Run Browser Integration Tests:**
+   ```bash
+   npx jest src/infrastructure/browser/PuppeteerStealthEngine.test.ts
+   ```
 
-Crontab at every minute
------
+_Note: Integration tests satisfy system-level dependencies for running a real browser. If you encounter issues on Linux, ensure you've run `sudo npm run setup:linux` first._
 
-```bash
-* * * * * xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" node --harmony /var/www/trafficbot/index.js --url https://ppplayer.com --windows 1 --time 3 
-```
+## Configuration (.env)
 
-Further readings
-----------------
- * [NodeJS](https://nodejs.org/en/)
- * [Nightmare](https://github.com/segmentio/nightmare)
- * [Alpine Tor](https://github.com/zet4/alpine-tor)
- * [Tor Manual](https://www.torproject.org/docs/tor-manual.html.en)
- * [Tor Control](https://www.thesprawl.org/research/tor-control-protocol/)
- * [HAProxy Manual](http://cbonte.github.io/haproxy-dconv/index.html)
- * [Privoxy Manual](https://www.privoxy.org/user-manual/)
+| Variable             | Default                    | Description                                        |
+| -------------------- | -------------------------- | -------------------------------------------------- |
+| `DEFAULT_URL`        | `https://lucasveneno.com/` | Initial target URL.                                |
+| `MAX_SESSIONS`       | `1`                        | Number of parallel browser instances.              |
+| `SESSION_TIME`       | `3`                        | Duration per session in minutes (or `random`).     |
+| `HEADLESS`           | `true`                     | Run without visible browser.                       |
+| `HUMAN_BEHAVIOR`     | `true`                     | Enable mouse movement and scrolling simulation.    |
+| `BEHAVIOR_INTENSITY` | `medium`                   | Interaction frequency (`low`, `medium`, `high`).   |
+| `PROXY_URL`          | -                          | Proxy server address (e.g., `socks5://127.0.0.1`). |
+| `PROXY_PORT`         | -                          | Proxy server port (e.g., `9050`).                  |
 
-License
------
+## Stealth & Anonymity
 
-Veneno Traffic Bot is an open source project released under the permissive MIT license.
+The bot implements multiple layers of protection to bypass advanced detection:
 
-For an enhanced experience, explore the paid version at [Auto Cursor - Advanced Traffic Bot](https://autocursor.com)
+1.  **Canvas & WebGL Randomization**: Injects non-destructive noise into canvas data and spoofs GPU vendors/renderers (M1, NVIDIA, Intel).
+2.  **Modern User-Agents**: Uses a curated pool of **Chrome 140+ (2025/2026)** strings with randomized build/patch versions.
+3.  **Human Behavior Simulation**: Mimics real human interaction through randomized smooth scrolling and cursor movements.
+4.  **Hardware Spoofing**: Randomizes `deviceMemory`, `hardwareConcurrency`, and `navigator.platform`.
 
-Veneno Traffic Bot is standing on the shoulders of giants. Building something like Veneno Traffic Bot probably wouldn't be possible if not for the excellent open source projects that it builds on top of. In particular, it uses Nightmare for its fast architecture.
+## Architecture
+
+## Security Features
+
+- **Anti-Fingerprinting**: Integrated `puppeteer-extra-plugin-stealth`.
+- **Environment Validation**: Fail-fast configuration with Zod.
+- **Resource Management**: Structured logging and graceful error handling.
+
+## License
+
+MIT

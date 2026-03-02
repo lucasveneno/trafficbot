@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  traffic-bot:
+    build: .
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - DEFAULT_URL=${DEFAULT_URL:-https://lucasveneno.com/}
+      - MAX_SESSIONS=${MAX_SESSIONS:-5}
+      - PROXY_URL=tor-proxy
+      - PROXY_PORT=8118
+      - PROXY_USER=admin
+      - PROXY_PASS=admin
+    depends_on:
+      - tor-proxy
+    restart: always
+
+  tor-proxy:
+    image: zeta0/alpine-tor:latest
+    ports:
+      - "8118:8118"
+      - "2090:2090"
+    environment:
+      - tors=25
+      - privoxy=1
+      - haproxy_login=admin
+      - haproxy_pass=admin
+    restart: always

@@ -1,0 +1,27 @@
+export interface BrowserOptions {
+  headless?: boolean | 'new';
+  userAgent?: string;
+  userDataDir?: string;
+  proxy?: {
+    server: string;
+    username?: string;
+    password?: string;
+  };
+  viewport?: {
+    width: number;
+    height: number;
+  };
+  platform?: string;
+  fingerprintScript?: string;
+}
+
+export interface BrowserEngine {
+  init(options: BrowserOptions): Promise<void>;
+  navigate(url: string): Promise<void>;
+  wait(ms: number): Promise<void>;
+  evaluate<T>(fn: (...args: any[]) => T, ...args: any[]): Promise<T>;
+  scroll(deltaX: number, deltaY: number): Promise<void>;
+  mouseMove(x: number, y: number): Promise<void>;
+  click(x: number, y: number): Promise<void>;
+  close(): Promise<void>;
+}
