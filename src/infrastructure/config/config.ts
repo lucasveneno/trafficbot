@@ -27,6 +27,8 @@ const ConfigSchema = z.object({
   MATCH_GEOLOCATION: z.preprocess((val) => val === 'true', z.boolean()).default(false),
   SEARCH_TARGET_TYPE: z.enum(['url', 'contains', 'text']).default('url'),
   SEARCH_TARGET_VALUE: z.string().optional(),
+  SEARCH_PAGES_LIMIT: z.coerce.number().min(1).max(10).default(1),
+  SEARCH_ENGINE: z.enum(['google', 'bing', 'duckduckgo', 'random']).default('google'),
 });
 
 export const Config = ConfigSchema.parse(process.env);

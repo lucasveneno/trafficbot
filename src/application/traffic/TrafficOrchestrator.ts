@@ -68,35 +68,81 @@ export class TrafficOrchestrator {
       // 2. Organic Search or Referrer Spoofing
       if (Config.ORGANIC_SEARCH && Config.SEARCH_KEYWORDS.length > 0) {
         const keyword = referrerService.getRandomKeyword(Config.SEARCH_KEYWORDS);
-        const { name, url: searchUrl } = referrerService.getRandomSearchUrl(keyword);
+        const { name, url: homepageUrl } = referrerService.getSearchHomepage(Config.SEARCH_ENGINE);
         
-        logger.info(`Simulating Organic Search via ${name}`, { keyword, searchUrl });
-        await this.engine.navigate(searchUrl);
+        logger.info(`Simulating Organic Search via ${name} (Human-like typing)`, { keyword, homepageUrl });
+        await this.engine.navigate(homepageUrl);
         await this.engine.waitForNetworkIdle();
         
-        // Wait to simulate "looking" at results
-        await this.engine.randomDelay(2000, 5000);
-
-        // Targeted Clicking Logic
-        const targetType = Config.SEARCH_TARGET_TYPE;
-        const targetValue = Config.SEARCH_TARGET_VALUE || config.url;
+        // Clear potential consent popups before interacting
+        await this.engine.handleConsentPopups();
         
-        logger.info(`Searching for target link...`, { type: targetType, value: targetValue });
-
-        let clicked = false;
-        if (targetType === 'url') {
-          clicked = await this.engine.clickLinkByHref(targetValue);
-        } else if (targetType === 'contains') {
-          clicked = await this.engine.clickLinkContainingHref(targetValue);
-        } else if (targetType === 'text') {
-          clicked = await this.engine.clickLinkByText(targetValue);
+        await this.engine.randomDelay(1000, 3000);
+        
+        // Type the keyword and search
+        await this.engine.searchKeyword(keyword);
+        const searchUrl = await this.engine.evaluate(() => window.location.href);
+        
+        // Wait to simulate "looking" at results
+        if (Config.HUMAN_BEHAVIOR) {
+          logger.info('Simulating human-like result scanning (scrolling and mouse movement)...');
+          const searchWait = Math.floor(Math.random() * 3000) + 3000; // 3-6 seconds
+          const searchStart = Date.now();
+          while (Date.now() - searchStart < searchWait) {
+            await BehaviorService.simulateRandomAction(this.engine, config.viewport, { intensity: 'low' });
+          }
+        } else {
+          logger.info('Waiting briefly on search results...');
+          await this.engine.randomDelay(2000, 5000);
         }
 
-        if (clicked) {
-          logger.info(`Successfully clicked search result!`);
-          await this.engine.waitForNetworkIdle();
-        } else {
-          logger.warn(`Search target not found on result page. Navigating directly.`, { 
+        // Targeted Clicking Logic (Multi-page loop)
+        const targetType = Config.SEARCH_TARGET_TYPE;
+        const targetValue = Config.SEARCH_TARGET_VALUE || config.url;
+        const pageLimit = Config.SEARCH_PAGES_LIMIT;
+        
+        let clicked = false;
+        for (let page = 1; page <= pageLimit; page++) {
+          logger.info(`Searching for target link (Page ${page}/${pageLimit})...`, { 
+            strategy: targetType, 
+            pattern: targetValue 
+          });
+
+          if (targetType === 'url') {
+            clicked = await this.engine.clickLinkByHref(targetValue);
+          } else if (targetType === 'contains') {
+            clicked = await this.engine.clickLinkContainingHref(targetValue);
+          } else if (targetType === 'text') {
+            clicked = await this.engine.clickLinkByText(targetValue);
+          }
+
+          if (clicked) {
+            logger.info(`Successfully identified and clicked target search result on page ${page}!`);
+            // Wait for navigation to commence and network to settle
+            await this.engine.wait(Math.floor(Math.random() * 2000) + 3000); 
+            try {
+              await this.engine.waitForNetworkIdle();
+            } catch (e) {
+              // Ignore network idle timeout, proceed with the loop
+            }
+            break;
+          }
+
+          if (page < pageLimit) {
+            logger.info(`Target not found on page ${page}. Attempting to navigate to next page...`);
+            const movedToNext = await this.engine.clickNextSearchPage();
+            if (!movedToNext) {
+              logger.warn(`Could not find "Next" button on search page ${page}. Stopping search.`);
+              break;
+            }
+            await this.engine.waitForNetworkIdle();
+            // Random delay after clicking next
+            await this.engine.randomDelay(2000, 4000);
+          }
+        }
+
+        if (!clicked) {
+          logger.warn(`Target link matching "${targetValue}" not found within ${pageLimit} pages. Navigating directly.`, { 
             type: targetType, 
             value: targetValue 
           });

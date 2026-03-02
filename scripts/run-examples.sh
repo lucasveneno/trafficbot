@@ -99,15 +99,30 @@ case $choice in
 
     read -p "Enter match value (URL, partial URL, or Link Text): " target_value
     read -p "Enter final destination URL (if different from above): " final_url
+    read -p "Which search engine? [google/bing/duckduckgo/random]: " search_engine
+    read -p "How many pages to search through? [1-5]: " page_limit
+    read -p "Enable human behavior simulation? [y/n]: " behavior_choice
     
+    [[ -z "$final_url" ]] && final_url="$target_value"
+    [[ -z "$page_limit" ]] && page_limit="1"
+    [[ -z "$search_engine" ]] || [[ "$search_engine" == "r" ]] && search_engine="random"
     [[ ! $final_url =~ ^http ]] && final_url="https://$final_url"
+    
+    if [[ "$behavior_choice" == "n" ]]; then
+      human_behavior="false"
+    else
+      human_behavior="true"
+    fi
     
     NODE_ENV=production \
     ORGANIC_SEARCH=true \
     SEARCH_KEYWORDS="$custom_keyword" \
+    SEARCH_ENGINE="$search_engine" \
     SEARCH_TARGET_TYPE="$target_type" \
     SEARCH_TARGET_VALUE="$target_value" \
+    SEARCH_PAGES_LIMIT="$page_limit" \
     DEFAULT_URL="$final_url" \
+    HUMAN_BEHAVIOR="$human_behavior" \
     MAX_SESSIONS=1 \
     HEADLESS=false \
     BOT_ROLE=both \

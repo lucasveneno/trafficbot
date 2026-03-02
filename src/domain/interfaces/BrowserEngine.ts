@@ -31,4 +31,7 @@ export interface BrowserEngine {
   clickLinkByHref(href: string): Promise<boolean>;
   clickLinkContainingHref(partialHref: string): Promise<boolean>;
   clickLinkByText(text: string): Promise<boolean>;
+  clickNextSearchPage(): Promise<boolean>;
+  searchKeyword(keyword: string): Promise<void>;
+  handleConsentPopups(): Promise<boolean>;
 }

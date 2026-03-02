@@ -13,19 +13,24 @@ export class PuppeteerStealthEngine implements BrowserEngine {
   async init(options: BrowserOptions): Promise<void> {
     const args = [
       '--disable-web-security',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
       '--disable-features=IsolateOrigins,site-per-process',
       '--window-position=0,0',
       '--no-first-run',
       '--no-zygote',
       '--disable-blink-features=AutomationControlled',
+      '--disable-infobars',
+      '--hide-scrollbars',
+      '--mute-audio',
+      '--no-default-browser-check',
     ];
 
     // On Linux and Windows, we usually need the sandbox flags or to disable them for stability
     if (process.platform === 'linux' || process.platform === 'win32') {
       args.push('--no-sandbox');
       args.push('--disable-setuid-sandbox');
+      args.push('--disable-dev-shm-usage');
+      args.push('--disable-accelerated-2d-canvas');
+      args.push('--disable-gpu');
     }
 
     if (options.proxy) {
@@ -36,6 +41,7 @@ export class PuppeteerStealthEngine implements BrowserEngine {
       headless: options.headless === false ? false : 'new',
       args,
       ignoreDefaultArgs: ['--enable-automation'],
+      defaultViewport: options.viewport || { width: 1280, height: 720 },
     };
 
     if (options.userDataDir) {
@@ -48,6 +54,21 @@ export class PuppeteerStealthEngine implements BrowserEngine {
 
     if (options.userAgent) {
       await this.page.setUserAgent(options.userAgent);
+      
+      // Reinforce Client Hints (Sec-CH-UA)
+      const chromeMatch = options.userAgent.match(/Chrome\/(\d+)/);
+      if (chromeMatch) {
+        const majorVersion = chromeMatch[1];
+        const isMobile = options.userAgent.includes('Mobile');
+        const platform = options.platform === 'MacIntel' ? 'macOS' : 
+                         options.platform === 'Win32' ? 'Windows' : 'Linux';
+
+        await this.page.setExtraHTTPHeaders({
+          'sec-ch-ua': `"Not(A:Brand";v="99", "Google Chrome";v="${majorVersion}", "Chromium";v="${majorVersion}"`,
+          'sec-ch-ua-mobile': isMobile ? '?1' : '?0',
+          'sec-ch-ua-platform': `"${platform}"`,
+        });
+      }
     }
 
     if (options.viewport) {
@@ -121,7 +142,11 @@ export class PuppeteerStealthEngine implements BrowserEngine {
 
   async waitForNetworkIdle(): Promise<void> {
     if (!this.page) throw new Error('Engine not initialized');
-    await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 30000 });
+    try {
+      await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 15000 });
+    } catch (e) {
+      // Ignore network idle timeouts, some pages never fully idle
+    }
   }
 
   async randomDelay(min: number, max: number): Promise<void> {
@@ -134,7 +159,10 @@ export class PuppeteerStealthEngine implements BrowserEngine {
     try {
       const link = await this.page.$(`a[href="${href}"]`);
       if (link) {
-        await link.click();
+        // Robust click
+        await this.page.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), link);
+        await this.randomDelay(500, 1500);
+        await link.click({ delay: Math.random() * 200 + 100 });
         return true;
       }
       return false;
@@ -150,7 +178,10 @@ export class PuppeteerStealthEngine implements BrowserEngine {
       for (const link of links) {
         const href = await this.page.evaluate(el => el.getAttribute('href'), link);
         if (href && href.includes(partialHref)) {
-          await link.click();
+          // Robust click
+          await this.page.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), link);
+          await this.randomDelay(500, 1500);
+          await link.click({ delay: Math.random() * 200 + 100 });
           return true;
         }
       }
@@ -168,12 +199,142 @@ export class PuppeteerStealthEngine implements BrowserEngine {
       for (const link of links) {
         const linkText = await this.page.evaluate(el => el.textContent, link);
         if (linkText && linkText.toLowerCase().includes(text.toLowerCase())) {
-          await link.click();
+          // Robust click
+          await this.page.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), link);
+          await this.randomDelay(500, 1500);
+          await link.click({ delay: Math.random() * 200 + 100 });
           return true;
         }
       }
       return false;
     } catch (e) {
+      return false;
+    }
+  }
+
+  async clickNextSearchPage(): Promise<boolean> {
+    if (!this.page) throw new Error('Engine not initialized');
+    try {
+      // Common selectors for "Next" buttons
+      const nextSelectors = [
+        'a#pnnext', // Google
+        'a.sb_pagN', // Bing
+        '#more-results', // DuckDuckGo
+        'a.next', // Generic
+        'a[aria-label="Next page"]' // Standard ARIA
+      ];
+
+      for (const selector of nextSelectors) {
+        const nextButton = await this.page.$(selector);
+        if (nextButton) {
+          // Robust click
+          await this.page.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), nextButton);
+          await this.randomDelay(1000, 2000);
+          await nextButton.click({ delay: Math.random() * 200 + 100 });
+          await this.waitForNetworkIdle();
+          return true;
+        }
+      }
+
+      // Fallback: Try searching for "Next" text in links
+      return await this.clickLinkByText('Next');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async searchKeyword(keyword: string): Promise<void> {
+    if (!this.page) throw new Error('Engine not initialized');
+    
+    try {
+      // Find search input (Google: [name="q"], Bing: [name="q"], DDG: [name="q"] or #search_form_input_homepage)
+      const inputSelector = 'input[name="q"], textarea[name="q"], #search_form_input_homepage, #search_form_input';
+      await this.page.waitForSelector(inputSelector, { timeout: 10000 });
+      
+      // Click into search box
+      await this.page.click(inputSelector);
+      await this.randomDelay(500, 1000);
+      
+      // Type like a human
+      for (const char of keyword) {
+        await this.page.type(inputSelector, char, { delay: Math.random() * 100 + 50 });
+      }
+      
+      await this.randomDelay(500, 1200);
+      
+      // Press Enter and wait for navigation
+      const navPromise = this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+      await this.page.keyboard.press('Enter');
+      await navPromise;
+      
+      await this.waitForNetworkIdle();
+    } catch (e: any) {
+      // Fallback: If we can't find the input or fail typing, just navigate to the result URL
+      // This is handled by the caller if this throws, but we want to be robust
+      throw new Error(`Failed to simulate human search: ${e.message}`);
+    }
+  }
+
+  async handleConsentPopups(): Promise<boolean> {
+    if (!this.page) throw new Error('Engine not initialized');
+    
+    logger.debug('Checking for consent popups...');
+    
+    const consentSelectors = [
+      // Google
+      'button[aria-label="Accept all"]',
+      'button[aria-label="I agree"]',
+      '#L2AGLb', // Google "Accept all" ID
+      'button:contains("Accept all")',
+      // Bing
+      '#bnp_btn_accept',
+      'button#bnp_btn_accept',
+      '#adlt_set_save',
+      // Generic XPath for buttons containing specific text
+      '//button[contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "accept all")]',
+      '//button[contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "i agree")]',
+      '//button[contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "agree")]',
+      '//button[contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "accept cookies")]'
+    ];
+
+    try {
+      // Short delay to allow popup to appear
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      for (const selector of consentSelectors) {
+        let element;
+        if (selector.startsWith('//')) {
+          const [handle] = await (this.page as any).$x(selector);
+          element = handle;
+        } else if (selector.includes(':contains')) {
+          const text = selector.match(/:contains\("(.+)"\)/)?.[1];
+          if (text) {
+            const [handle] = await (this.page as any).$x(`//button[contains(., "${text}")]`);
+            element = handle;
+          }
+        } else {
+          element = await this.page.$(selector);
+        }
+
+        if (element) {
+          const isVisible = await element.evaluate((el: any) => {
+            const style = window.getComputedStyle(el);
+            return style && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetWidth > 0;
+          });
+
+          if (isVisible) {
+            logger.info('Consent popup detected, attempting to clear...', { selector });
+            await (element as any).click();
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for it to close
+            return true;
+          }
+        }
+      }
+      
+      logger.debug('No active consent popups detected.');
+      return false;
+    } catch (error) {
+      logger.debug('Error while checking for consent popups', { error: (error as Error).message });
       return false;
     }
   }
