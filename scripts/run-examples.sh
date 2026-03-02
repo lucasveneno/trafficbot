@@ -37,6 +37,7 @@ case $choice in
     ;;
   3)
     read -p "Enter URL: " target_url
+    [[ ! $target_url =~ ^http ]] && target_url="https://$target_url"
     echo "Running Targeted Traffic to $target_url..."
     NODE_ENV=production DEFAULT_URL=$target_url MAX_SESSIONS=3 BOT_ROLE=both npm start
     ;;
@@ -83,6 +84,7 @@ case $choice in
     echo "Running Targeted Google Search Simulation..."
     read -p "Enter keyword to search for: " custom_keyword
     read -p "Enter target destination URL: " custom_url
+    [[ ! $custom_url =~ ^http ]] && custom_url="https://$custom_url"
     NODE_ENV=production ORGANIC_SEARCH=true SEARCH_KEYWORDS="$custom_keyword" DEFAULT_URL="$custom_url" MAX_SESSIONS=1 HEADLESS=false BOT_ROLE=both npm start
     ;;
   q)
