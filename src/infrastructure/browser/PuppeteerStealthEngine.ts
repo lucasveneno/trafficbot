@@ -215,30 +215,91 @@ export class PuppeteerStealthEngine implements BrowserEngine {
   async clickNextSearchPage(): Promise<boolean> {
     if (!this.page) throw new Error('Engine not initialized');
     try {
-      // Common selectors for "Next" buttons
       const nextSelectors = [
         'a#pnnext', // Google
         'a.sb_pagN', // Bing
-        '#more-results', // DuckDuckGo
-        'a.next', // Generic
-        'a[aria-label="Next page"]' // Standard ARIA
+        'a.page-link[aria-label="Next page"]', // Bing alternative
+        'button#more-results', // DuckDuckGo
+        'a:contains("Next")', // Generic text-based fallback
       ];
 
       for (const selector of nextSelectors) {
         const nextButton = await this.page.$(selector);
         if (nextButton) {
-          // Robust click
           await this.page.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), nextButton);
-          await this.randomDelay(1000, 2000);
+          await this.randomDelay(500, 1500);
           await nextButton.click({ delay: Math.random() * 200 + 100 });
           await this.waitForNetworkIdle();
           return true;
         }
       }
 
-      // Fallback: Try searching for "Next" text in links
-      return await this.clickLinkByText('Next');
+      // Special case for DuckDuckGo "More Results" button
+      if (await this.page.$('#more-results')) {
+        await this.page.click('#more-results');
+        await this.randomDelay(1000, 2000);
+        return true;
+      }
+
+      return false;
     } catch (e) {
+      return false;
+    }
+  }
+
+  async clickSearchResult(pattern: string): Promise<boolean> {
+    if (!this.page) throw new Error('Engine not initialized');
+    try {
+      const links = await this.page.$$('a');
+      const patternLower = pattern.toLowerCase();
+
+      for (const link of links) {
+        const href = await this.page.evaluate(el => el.getAttribute('href'), link);
+        const text = await this.page.evaluate(el => el.textContent, link);
+        
+        // Skip common search engine internal links
+        if (text && (text.toLowerCase().includes('similar') || text.toLowerCase().includes('cached'))) continue;
+
+        // Strategy 1: Direct href match
+        if (href && href.toLowerCase().includes(patternLower)) {
+          // Special case for search engine redirect URLs (e.g., google.com/url?q=...)
+          const isRedirect = href.includes('/url?') || href.includes('bing.com/ck/a?') || href.includes('duckduckgo.com/l/?');
+          if (isRedirect) {
+            // Check if the pattern is in the query params or the full encoded URL
+            try {
+              const urlObj = new URL(href, this.page.url());
+              const target = urlObj.searchParams.get('q') || urlObj.searchParams.get('url') || urlObj.searchParams.get('uddg');
+              if (target && target.toLowerCase().includes(patternLower)) {
+                logger.info(`Heuristic: Found target in redirect URL: ${target}`);
+              } else if (!href.toLowerCase().includes(patternLower)) {
+                continue; // Not a match in the redirect target
+              }
+            } catch (e) {
+              // URL parsing failed, but if href still contains pattern, we proceed
+              if (!href.toLowerCase().includes(patternLower)) continue;
+            }
+          }
+
+          logger.info(`Clicking result by href: ${href}`);
+          await this.page.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), link);
+          await this.randomDelay(800, 2000);
+          await link.click({ delay: Math.random() * 200 + 100 });
+          return true;
+        }
+
+        // Strategy 2: Text content match
+        if (text && text.toLowerCase().includes(patternLower)) {
+          logger.info(`Clicking result by text: ${text.trim()}`);
+          await this.page.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), link);
+          await this.randomDelay(800, 2000);
+          await link.click({ delay: Math.random() * 200 + 100 });
+          return true;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      logger.error(`Error in clickSearchResult: ${e}`);
       return false;
     }
   }
@@ -246,32 +307,59 @@ export class PuppeteerStealthEngine implements BrowserEngine {
   async searchKeyword(keyword: string): Promise<void> {
     if (!this.page) throw new Error('Engine not initialized');
     
-    try {
-      // Find search input (Google: [name="q"], Bing: [name="q"], DDG: [name="q"] or #search_form_input_homepage)
-      const inputSelector = 'input[name="q"], textarea[name="q"], #search_form_input_homepage, #search_form_input';
-      await this.page.waitForSelector(inputSelector, { timeout: 10000 });
-      
-      // Click into search box
-      await this.page.click(inputSelector);
-      await this.randomDelay(500, 1000);
-      
-      // Type like a human
-      for (const char of keyword) {
-        await this.page.type(inputSelector, char, { delay: Math.random() * 100 + 50 });
+    const searchInputSelectors = [
+      'input[name="q"]', // Google, Bing
+      'textarea[name="q"]', // Google modern
+      '#search_form_input_homepage', // DuckDuckGo homepage
+      '#search_form_input', // DuckDuckGo results
+      'input[type="text"]', // Generic fallback
+    ];
+
+    let inputSet = false;
+    for (const selector of searchInputSelectors) {
+      try {
+        const input = await this.page.waitForSelector(selector, { timeout: 5000 });
+        if (input) {
+          logger.debug(`Found search input with selector: ${selector}`);
+          
+          // Clear input first
+          await input.click();
+          await this.page.keyboard.down('Meta'); // Mac CMD
+          await this.page.keyboard.press('a');
+          await this.page.keyboard.up('Meta');
+          await this.page.keyboard.press('Backspace');
+          
+          // Fallback for non-mac or failed CMD+A
+          const currentVal = await input.evaluate((el: any) => el.value);
+          if (currentVal) {
+             await this.page.keyboard.down('Control');
+             await this.page.keyboard.press('a');
+             await this.page.keyboard.up('Control');
+             await this.page.keyboard.press('Backspace');
+          }
+
+          // Type like a human
+          await input.type(keyword, { delay: Math.random() * 100 + 50 });
+          await this.randomDelay(500, 1200);
+          
+          // Press Enter and wait for navigation
+          const navPromise = this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {
+            logger.debug('Search navigation timeout or already navigated');
+          });
+          await this.page.keyboard.press('Enter');
+          await navPromise;
+          
+          await this.waitForNetworkIdle();
+          inputSet = true;
+          break;
+        }
+      } catch (e) {
+        continue;
       }
-      
-      await this.randomDelay(500, 1200);
-      
-      // Press Enter and wait for navigation
-      const navPromise = this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
-      await this.page.keyboard.press('Enter');
-      await navPromise;
-      
-      await this.waitForNetworkIdle();
-    } catch (e: any) {
-      // Fallback: If we can't find the input or fail typing, just navigate to the result URL
-      // This is handled by the caller if this throws, but we want to be robust
-      throw new Error(`Failed to simulate human search: ${e.message}`);
+    }
+
+    if (!inputSet) {
+      throw new Error(`Search input not found with any selector for keyword: ${keyword}`);
     }
   }
 

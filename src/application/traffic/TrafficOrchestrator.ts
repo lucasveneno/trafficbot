@@ -108,13 +108,7 @@ export class TrafficOrchestrator {
             pattern: targetValue 
           });
 
-          if (targetType === 'url') {
-            clicked = await this.engine.clickLinkByHref(targetValue);
-          } else if (targetType === 'contains') {
-            clicked = await this.engine.clickLinkContainingHref(targetValue);
-          } else if (targetType === 'text') {
-            clicked = await this.engine.clickLinkByText(targetValue);
-          }
+          clicked = await this.engine.clickSearchResult(targetValue);
 
           if (clicked) {
             logger.info(`Successfully identified and clicked target search result on page ${page}!`);
