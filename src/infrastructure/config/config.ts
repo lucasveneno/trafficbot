@@ -5,7 +5,7 @@ dotenv.config();
 const ConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-  DEFAULT_URL: z.string().url().default('https://lucasveneno.com/'),
+  DEFAULT_URL: z.preprocess((val) => process.env.URL || val, z.string().url()).default('https://lucasveneno.com/'),
   MAX_SESSIONS: z.coerce.number().int().positive().default(1),
   STEALTH_MODE: z.preprocess((a) => a === 'true' || a === '1' || a === true, z.boolean()).default(true),
   HEADLESS: z.preprocess((a) => a === 'false' || a === '0' || a === false ? false : true, z.boolean()).default(true),
