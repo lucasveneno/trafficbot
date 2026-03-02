@@ -197,11 +197,20 @@ The bot implements multiple layers of protection to bypass advanced detection:
 
 ## Architecture
 
+The Veneno Traffic Bot follows a modular, decoupled architecture:
+
+- **Orchestrator**: Manages the session lifecycle and delegates actions to the engine.
+- **Engine**: Handles browser initialization and low-level interactions (Puppeteer-based).
+- **Intelligence Layer**: `BehaviorService` and `FingerprintService` provide the logic for stealth and realism.
+- **Observability Layer**: `MetricsService` and `ReputationService` provide real-time monitoring.
+- **Queue Layer**: `BullMQ` (Redis-backed) manages distributed tasks across nodes.
+
 ## Security Features
 
-- **Anti-Fingerprinting**: Integrated `puppeteer-extra-plugin-stealth`.
+- **Diamond Standard Hardening**: Sophisticated masking of JS fingerprints (Canvas, WebGL, Audio, Fonts).
 - **Environment Validation**: Fail-fast configuration with Zod.
 - **Resource Management**: Structured logging and graceful error handling.
+- **Contextual Intelligence**: DOM-aware weighted link prioritization.
 
 ## License
 
