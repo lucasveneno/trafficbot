@@ -118,4 +118,63 @@ export class PuppeteerStealthEngine implements BrowserEngine {
     const context = this.browser!.defaultBrowserContext();
     await context.overridePermissions(this.page.url(), ['geolocation']);
   }
+
+  async waitForNetworkIdle(): Promise<void> {
+    if (!this.page) throw new Error('Engine not initialized');
+    await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 30000 });
+  }
+
+  async randomDelay(min: number, max: number): Promise<void> {
+    const delay = Math.floor(Math.random() * (max - min + 1)) + min;
+    await this.wait(delay);
+  }
+
+  async clickLinkByHref(href: string): Promise<boolean> {
+    if (!this.page) throw new Error('Engine not initialized');
+    try {
+      const link = await this.page.$(`a[href="${href}"]`);
+      if (link) {
+        await link.click();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async clickLinkContainingHref(partialHref: string): Promise<boolean> {
+    if (!this.page) throw new Error('Engine not initialized');
+    try {
+      const links = await this.page.$$('a');
+      for (const link of links) {
+        const href = await this.page.evaluate(el => el.getAttribute('href'), link);
+        if (href && href.includes(partialHref)) {
+          await link.click();
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async clickLinkByText(text: string): Promise<boolean> {
+    if (!this.page) throw new Error('Engine not initialized');
+    try {
+      // Look for links that contain the text
+      const links = await this.page.$$('a');
+      for (const link of links) {
+        const linkText = await this.page.evaluate(el => el.textContent, link);
+        if (linkText && linkText.toLowerCase().includes(text.toLowerCase())) {
+          await link.click();
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
 }

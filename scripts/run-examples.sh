@@ -25,6 +25,7 @@ echo "q) Quit"
 echo "------------------------------------------------"
 
 read -p "Enter choice [1-12 or q]: " choice
+choice=$(echo $choice | xargs)
 
 case $choice in
   1)
@@ -83,14 +84,39 @@ case $choice in
   12)
     echo "Running Targeted Google Search Simulation..."
     read -p "Enter keyword to search for: " custom_keyword
-    read -p "Enter target destination URL: " custom_url
-    [[ ! $custom_url =~ ^http ]] && custom_url="https://$custom_url"
-    NODE_ENV=production ORGANIC_SEARCH=true SEARCH_KEYWORDS="$custom_keyword" DEFAULT_URL="$custom_url" MAX_SESSIONS=1 HEADLESS=false BOT_ROLE=both npm start
+    echo "How should the bot find the link in search results?"
+    echo "1) Exact URL match"
+    echo "2) URL contains specific text"
+    echo "3) Click link by visible text (e.g. 'Lucas Veneno Portfolio')"
+    read -p "Select option [1-3]: " match_type_choice
+    
+    case $match_type_choice in
+      1) target_type="url";;
+      2) target_type="contains";;
+      3) target_type="text";;
+      *) target_type="url";;
+    esac
+
+    read -p "Enter match value (URL, partial URL, or Link Text): " target_value
+    read -p "Enter final destination URL (if different from above): " final_url
+    
+    [[ ! $final_url =~ ^http ]] && final_url="https://$final_url"
+    
+    NODE_ENV=production \
+    ORGANIC_SEARCH=true \
+    SEARCH_KEYWORDS="$custom_keyword" \
+    SEARCH_TARGET_TYPE="$target_type" \
+    SEARCH_TARGET_VALUE="$target_value" \
+    DEFAULT_URL="$final_url" \
+    MAX_SESSIONS=1 \
+    HEADLESS=false \
+    BOT_ROLE=both \
+    npm start
     ;;
   q)
     exit 0
     ;;
   *)
-    echo "Invalid choice"
+    echo "Invalid choice: '$choice'"
     ;;
 esac

@@ -25,6 +25,8 @@ const ConfigSchema = z.object({
   SEARCH_KEYWORDS: z.preprocess((val) => (val ? String(val).split(',') : []), z.array(z.string())).default([]),
   REFERRER_POOL: z.preprocess((val) => (val ? String(val).split(',') : []), z.array(z.string())).default([]),
   MATCH_GEOLOCATION: z.preprocess((val) => val === 'true', z.boolean()).default(false),
+  SEARCH_TARGET_TYPE: z.enum(['url', 'contains', 'text']).default('url'),
+  SEARCH_TARGET_VALUE: z.string().optional(),
 });
 
 export const Config = ConfigSchema.parse(process.env);

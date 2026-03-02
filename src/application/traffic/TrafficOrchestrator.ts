@@ -72,14 +72,38 @@ export class TrafficOrchestrator {
         
         logger.info(`Simulating Organic Search via ${name}`, { keyword, searchUrl });
         await this.engine.navigate(searchUrl);
+        await this.engine.waitForNetworkIdle();
         
-        // Brief wait to simulate "looking" at results
-        await this.engine.wait(2000 + Math.random() * 3000);
+        // Wait to simulate "looking" at results
+        await this.engine.randomDelay(2000, 5000);
+
+        // Targeted Clicking Logic
+        const targetType = Config.SEARCH_TARGET_TYPE;
+        const targetValue = Config.SEARCH_TARGET_VALUE || config.url;
         
-        // Navigate to target (this simulates the "click")
-        // We set the referer to the search engine
-        await this.engine.setExtraHeaders({ 'Referer': searchUrl });
-        await this.engine.navigate(config.url);
+        logger.info(`Searching for target link...`, { type: targetType, value: targetValue });
+
+        let clicked = false;
+        if (targetType === 'url') {
+          clicked = await this.engine.clickLinkByHref(targetValue);
+        } else if (targetType === 'contains') {
+          clicked = await this.engine.clickLinkContainingHref(targetValue);
+        } else if (targetType === 'text') {
+          clicked = await this.engine.clickLinkByText(targetValue);
+        }
+
+        if (clicked) {
+          logger.info(`Successfully clicked search result!`);
+          await this.engine.waitForNetworkIdle();
+        } else {
+          logger.warn(`Search target not found on result page. Navigating directly.`, { 
+            type: targetType, 
+            value: targetValue 
+          });
+          // Fallback: Navigate directly but keep referer if possible
+          await this.engine.setExtraHeaders({ 'Referer': searchUrl });
+          await this.engine.navigate(config.url);
+        }
       } else {
         const referrer = referrerService.getRandomReferrer(Config.REFERRER_POOL);
         if (referrer) {

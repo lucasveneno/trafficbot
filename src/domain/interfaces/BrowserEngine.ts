@@ -26,4 +26,9 @@ export interface BrowserEngine {
   close(): Promise<void>;
   setExtraHeaders(headers: Record<string, string>): Promise<void>;
   setGeolocation(latitude: number, longitude: number): Promise<void>;
+  waitForNetworkIdle(): Promise<void>;
+  randomDelay(min: number, max: number): Promise<void>;
+  clickLinkByHref(href: string): Promise<boolean>;
+  clickLinkContainingHref(partialHref: string): Promise<boolean>;
+  clickLinkByText(text: string): Promise<boolean>;
 }
