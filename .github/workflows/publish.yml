@@ -1,33 +1,49 @@
-name: Publish to npm
+name: Release and Publish
 
 on:
   push:
-    tags:
-      - 'v*' # Triggers when a new version tag is pushed, e.g., v1.0.0
-  workflow_dispatch: # Allows you to manually trigger the workflow from the Actions tab
+    branches:
+      - master
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  publish:
+  release-please:
     runs-on: ubuntu-latest
-
     steps:
+      # 1. Run Release Please to create PRs or tags
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: node
+
+      # 2. If Release Please just created a release (because you merged the PR), 
+      # check out the code to publish it.
       - name: Checkout repository
+        if: ${{ steps.release.outputs.release_created }}
         uses: actions/checkout@v4
 
+      # 3. Setup Node to publish
       - name: Set up Node.js
+        if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org/'
-          cache: 'npm'
+          cache: npm
 
       - name: Install dependencies
+        if: ${{ steps.release.outputs.release_created }}
         run: npm ci
 
       - name: Build project
+        if: ${{ steps.release.outputs.release_created }}
         run: npm run build
 
       - name: Publish to npm
+        if: ${{ steps.release.outputs.release_created }}
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
