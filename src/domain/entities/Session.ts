@@ -10,6 +10,7 @@ export interface SessionConfig {
   };
   durationMs: number;
   intensity?: 'low' | 'medium' | 'high';
+  behaviorModel?: string;
 }
 
 export class Session {

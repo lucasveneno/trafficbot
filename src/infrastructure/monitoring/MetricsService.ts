@@ -63,6 +63,46 @@ export class MetricsService {
     });
   }
 
+  public trackBrowserLaunch(durationMs: number): void {
+    logger.debug('Metric: browser.launch', { durationMs });
+    try {
+      const { MetricsCollector } = require('../../application/metrics/MetricsCollector');
+      MetricsCollector.emit('browser.launch', { durationMs });
+    } catch (e) {}
+  }
+
+  public trackBrowserNavigation(durationMs: number, success: boolean, url?: string): void {
+    logger.debug('Metric: browser.navigation', { durationMs, success, url });
+    try {
+      const { MetricsCollector } = require('../../application/metrics/MetricsCollector');
+      MetricsCollector.emit('browser.navigation', { durationMs, metadata: { success, url } });
+    } catch (e) {}
+  }
+
+  public trackBrowserPageCrash(engine: string): void {
+    logger.debug('Metric: browser.page.crashed', { engine });
+    try {
+      const { MetricsCollector } = require('../../application/metrics/MetricsCollector');
+      MetricsCollector.emit('browser.page.crashed', { metadata: { engine } });
+    } catch (e) {}
+  }
+
+  public trackBrowserSelectorTimeout(selector: string): void {
+    logger.debug('Metric: browser.selector.timeout', { selector });
+    try {
+      const { MetricsCollector } = require('../../application/metrics/MetricsCollector');
+      MetricsCollector.emit('browser.selector.timeout', { metadata: { selector } });
+    } catch (e) {}
+  }
+
+  public trackAdbDisconnect(deviceSerial: string): void {
+    logger.debug('Metric: android.adb.disconnect', { deviceSerial });
+    try {
+      const { MetricsCollector } = require('../../application/metrics/MetricsCollector');
+      MetricsCollector.emit('android.adb.disconnect', { metadata: { deviceSerial } });
+    } catch (e) {}
+  }
+
   public getMetrics(): TrafficMetrics {
     return { ...this.metrics };
   }

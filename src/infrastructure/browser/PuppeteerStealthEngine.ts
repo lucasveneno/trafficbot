@@ -1,15 +1,22 @@
-import puppeteerExtra from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import puppeteer from 'puppeteer';
 import { Browser, Page, LaunchOptions } from 'puppeteer';
 
-puppeteerExtra.use(StealthPlugin());
 import { BrowserEngine, BrowserOptions } from '../../domain/interfaces/BrowserEngine';
 import { sameOrigin } from '../../domain/entities/SessionContract';
 import { logger } from '../logging/logger';
 import { BrowserProfile } from './profile/BrowserProfile';
 import { createRuntimeProfile, applyRuntimeProfile } from './profile/RuntimeProfile';
 import { ProxyLocationProvider } from './profile/ProxyLocationProvider';
+import { BrowserEngineConfig, defaultBrowserConfig } from './BrowserEngineConfig';
+
 import { ProfileStore } from './profile/ProfileStore';
+
+export type NavigationState = 'idle' | 'navigating' | 'loaded' | 'interacting' | 'failed';
+
+/** Returns the keyboard modifier key used for text selection shortcuts on the given platform. */
+export function selectKeyboardModifier(platform: NodeJS.Platform): 'Meta' | 'Control' {
+  return platform === 'darwin' ? 'Meta' : 'Control';
+}
 
 export class PuppeteerStealthEngine implements BrowserEngine {
   private browser: Browser | null = null;
@@ -19,6 +26,10 @@ export class PuppeteerStealthEngine implements BrowserEngine {
   private page: Page | null = null;
   private profile?: BrowserProfile;
   private headers: Record<string, string> = {};
+  private config: BrowserEngineConfig = defaultBrowserConfig;
+  private navigationState: NavigationState = 'idle';
+
+  getNavigationState(): NavigationState { return this.navigationState; }
 
   getProfile(): BrowserProfile {
     if (!this.profile) throw new Error('Browser profile not initialized');
@@ -64,12 +75,20 @@ export class PuppeteerStealthEngine implements BrowserEngine {
       defaultViewport: { width: 1280, height: 720 }, // Replaced by the validated profile before target navigation.
     };
 
+    const workerCapabilities = require('../worker/WorkerRegistry').WorkerRegistry.getCurrentCapabilities();
+    const { BrowserExecutableResolver } = require('./BrowserExecutableResolver');
+    const executablePath = BrowserExecutableResolver.resolveExecutable(options.deviceProfile, require('os').platform(), workerCapabilities);
+    if (executablePath) {
+      launchOptions.executablePath = executablePath;
+    }
+
+
     if (options.userDataDir) {
       await ProfileStore.prepareChromePreferences(options.userDataDir);
       launchOptions.userDataDir = options.userDataDir;
     }
 
-    this.launching = puppeteerExtra.launch(launchOptions as any);
+    this.launching = puppeteer.launch(launchOptions);
     this.browser = await this.launching;
     if (this.cancelled) { await this.close(); throw new Error('Session cancelled during launch'); }
     // Puppeteer's explicit initial about:blank prevents Chrome from restoring a
@@ -88,6 +107,10 @@ export class PuppeteerStealthEngine implements BrowserEngine {
       } finally { await locationPage.close(); }
     }
     this.profile = await createRuntimeProfile(this.browser, options.deviceProfile, options.userDataDir, location);
+    
+    const strategy = ProfileStore.getStrategy(this.profile);
+    await strategy.validate(this.profile);
+    
     await applyRuntimeProfile(this.page, this.profile);
     this.headers = { 'accept-language': this.profile.acceptLanguage };
     await this.page.setExtraHTTPHeaders(this.headers);
@@ -125,14 +148,22 @@ export class PuppeteerStealthEngine implements BrowserEngine {
     this.page.on('popup', page => { void page?.close(); });
 
     logger.debug('Browser initialized with consistent profile', { deviceId: this.profile.deviceId, browserVersion: this.profile.browserVersion });
+    this.navigationState = 'idle';
   }
 
   async navigate(url: string): Promise<void> {
     if (!this.page) throw new Error('Engine not initialized');
-    const response = await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.navigationTimeoutMs });
-    if (this.scopeError) throw this.scopeError;
-    if (!response) throw new Error('Missing navigation response');
-    if (response.status() >= 400) throw new Error(`HTTP failure: ${response.status()}`);
+    this.navigationState = 'navigating';
+    try {
+      const response = await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.navigationTimeoutMs });
+      if (this.scopeError) { this.navigationState = 'failed'; throw this.scopeError; }
+      if (!response) { this.navigationState = 'failed'; throw new Error('Missing navigation response'); }
+      if (response.status() >= 400) { this.navigationState = 'failed'; throw new Error(`HTTP failure: ${response.status()}`); }
+      this.navigationState = 'loaded';
+    } catch (e) {
+      this.navigationState = 'failed';
+      throw e;
+    }
   }
 
   async wait(ms: number): Promise<void> {
@@ -163,6 +194,11 @@ export class PuppeteerStealthEngine implements BrowserEngine {
     await this.page.mouse.click(x, y);
   }
 
+  async pressKey(key: string): Promise<void> {
+    if (!this.page) throw new Error('Engine not initialized');
+    await (this.page.keyboard as any).press(key);
+  }
+
   async close(): Promise<void> {
     if (this.closing) return this.closing;
     this.cancelled = true;
@@ -172,6 +208,7 @@ export class PuppeteerStealthEngine implements BrowserEngine {
       const browser = this.browser || await this.launching?.catch(() => undefined);
       this.browser = null;
       this.page = null;
+      this.navigationState = 'idle';
       if (browser) {
         try { await browser.close(); }
         catch (error) { browser.process()?.kill('SIGKILL'); throw error; }
@@ -201,7 +238,7 @@ export class PuppeteerStealthEngine implements BrowserEngine {
   async waitForNetworkIdle(): Promise<void> {
     if (!this.page) throw new Error('Engine not initialized');
     try {
-      await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 15000 });
+      await this.page.waitForNetworkIdle({ idleTime: this.config.networkIdleWaitMs, timeout: this.config.networkIdleTimeoutMs });
     } catch (e) {
       // Ignore network idle timeouts, some pages never fully idle
     }
@@ -308,54 +345,33 @@ export class PuppeteerStealthEngine implements BrowserEngine {
   async clickSearchResult(pattern: string): Promise<boolean> {
     if (!this.page) throw new Error('Engine not initialized');
     try {
-      const links = await this.page.$$('a');
-      const patternLower = pattern.toLowerCase();
-
-      for (const link of links) {
-        const href = await this.page.evaluate(el => el.getAttribute('href'), link);
-        const text = await this.page.evaluate(el => el.textContent, link);
-        
-        // Skip common search engine internal links
-        if (text && (text.toLowerCase().includes('similar') || text.toLowerCase().includes('cached'))) continue;
-
-        // Strategy 1: Direct href match
-        if (href && href.toLowerCase().includes(patternLower)) {
-          // Special case for search engine redirect URLs (e.g., google.com/url?q=...)
-          const isRedirect = href.includes('/url?') || href.includes('bing.com/ck/a?') || href.includes('duckduckgo.com/l/?');
-          if (isRedirect) {
-            // Check if the pattern is in the query params or the full encoded URL
-            try {
-              const urlObj = new URL(href, this.page.url());
-              const target = urlObj.searchParams.get('q') || urlObj.searchParams.get('url') || urlObj.searchParams.get('uddg');
-              if (target && target.toLowerCase().includes(patternLower)) {
-                logger.info(`Heuristic: Found target in redirect URL: ${target}`);
-              } else if (!href.toLowerCase().includes(patternLower)) {
-                continue; // Not a match in the redirect target
-              }
-            } catch (e) {
-              // URL parsing failed, but if href still contains pattern, we proceed
-              if (!href.toLowerCase().includes(patternLower)) continue;
-            }
+      const match = await this.page.evaluate((pattern: string) => {
+        const links = Array.from(document.querySelectorAll('a'));
+        const pl = pattern.toLowerCase();
+        for (let i = 0; i < links.length; i++) {
+          const href = (links[i] as HTMLAnchorElement).getAttribute('href') || '';
+          if (href.startsWith('javascript:') || href.startsWith('mailto:') || href === '' || href === '#') continue;
+          const rect = links[i].getBoundingClientRect();
+          const isVisible = rect.width > 0 && rect.height > 0 && window.getComputedStyle(links[i]).display !== 'none';
+          if (!isVisible) continue;
+          const text = links[i].textContent || '';
+          const tl = text.toLowerCase();
+          if (tl.includes('similar') || tl.includes('cached')) continue;
+          if (href.toLowerCase().includes(pl) || tl.includes(pl)) {
+            return { index: i, visible: true };
           }
-
-          logger.info(`Clicking result by href: ${href}`);
-          await this.page.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), link);
-          await this.randomDelay(800, 2000);
-          await link.click({ delay: Math.random() * 200 + 100 });
-          return true;
         }
+        return null;
+      }, pattern);
 
-        // Strategy 2: Text content match
-        if (text && text.toLowerCase().includes(patternLower)) {
-          logger.info(`Clicking result by text: ${text.trim()}`);
-          await this.page.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), link);
-          await this.randomDelay(800, 2000);
-          await link.click({ delay: Math.random() * 200 + 100 });
-          return true;
-        }
-      }
-
-      return false;
+      if (!match || !match.visible) return false;
+      const links = await this.page.$$('a');
+      const link = links[match.index];
+      if (!link) return false;
+      await this.page.evaluate((el: Element) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), link);
+      await this.randomDelay(800, 2000);
+      await link.click({ delay: Math.random() * 200 + 100 });
+      return true;
     } catch (e) {
       logger.error(`Error in clickSearchResult: ${e}`);
       return false;
@@ -364,7 +380,8 @@ export class PuppeteerStealthEngine implements BrowserEngine {
 
   async searchKeyword(keyword: string): Promise<void> {
     if (!this.page) throw new Error('Engine not initialized');
-    
+    this.navigationState = 'interacting';
+
     const searchInputSelectors = [
       'input[name="q"]', // Google, Bing
       'textarea[name="q"]', // Google modern
@@ -376,38 +393,31 @@ export class PuppeteerStealthEngine implements BrowserEngine {
     let inputSet = false;
     for (const selector of searchInputSelectors) {
       try {
-        const input = await this.page.waitForSelector(selector, { timeout: 5000 });
+        const input = await this.page.waitForSelector(selector, { timeout: this.config.selectorTimeoutMs });
         if (input) {
           logger.debug(`Found search input with selector: ${selector}`);
           
-          // Clear input first
+          // Clear input first (cross-platform: Meta on macOS, Control elsewhere)
           await input.click();
-          await this.page.keyboard.down('Meta'); // Mac CMD
+          const modifier = selectKeyboardModifier(process.platform);
+          await this.page.keyboard.down(modifier);
           await this.page.keyboard.press('a');
-          await this.page.keyboard.up('Meta');
+          await this.page.keyboard.up(modifier);
           await this.page.keyboard.press('Backspace');
-          
-          // Fallback for non-mac or failed CMD+A
-          const currentVal = await input.evaluate((el: any) => el.value);
-          if (currentVal) {
-             await this.page.keyboard.down('Control');
-             await this.page.keyboard.press('a');
-             await this.page.keyboard.up('Control');
-             await this.page.keyboard.press('Backspace');
-          }
 
           // Type like a human
           await input.type(keyword, { delay: Math.random() * 100 + 50 });
           await this.randomDelay(500, 1200);
           
           // Press Enter and wait for navigation
-          const navPromise = this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {
+          const navPromise = this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: this.config.interactionTimeoutMs }).catch(() => {
             logger.debug('Search navigation timeout or already navigated');
           });
           await this.page.keyboard.press('Enter');
           await navPromise;
           
           await this.waitForNetworkIdle();
+          this.navigationState = 'loaded';
           inputSet = true;
           break;
         }
@@ -427,53 +437,39 @@ export class PuppeteerStealthEngine implements BrowserEngine {
     logger.debug('Checking for consent popups...');
     
     const consentSelectors = [
-      // Google
-      'button[aria-label="Accept all"]',
-      'button[aria-label="I agree"]',
-      '#L2AGLb', // Google "Accept all" ID
-      'button:contains("Accept all")',
-      // Bing
+      '#L2AGLb',
       '#bnp_btn_accept',
-      'button#bnp_btn_accept',
       '#adlt_set_save',
-      // Generic XPath for buttons containing specific text
-      '//button[contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "accept all")]',
-      '//button[contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "i agree")]',
-      '//button[contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "agree")]',
-      '//button[contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "accept cookies")]'
+      '::-p-xpath(//button[@aria-label="Accept all"])',
+      '::-p-xpath(//button[@aria-label="I agree"])',
+      '::-p-xpath(//button[contains(., "Accept all")])',
+      '::-p-xpath(//button[contains(., "I agree")])',
+      '::-p-xpath(//button[contains(., "Accept cookies")])',
+      '::-p-xpath(//button[contains(., "Reject all")])',
+      '::-p-xpath(//div[@role="dialog"]//button[1])',
     ];
 
     try {
       // Short delay to allow popup to appear
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, this.config.consentCheckDelayMs));
 
       for (const selector of consentSelectors) {
-        let element;
-        if (selector.startsWith('//')) {
-          const handles = await this.page.$$(`::-p-xpath(${selector})`);
-          if (handles.length > 0) element = handles[0];
-        } else if (selector.includes(':contains')) {
-          const text = selector.match(/:contains\("(.+)"\)/)?.[1];
-          if (text) {
-             const handles = await this.page.$$(`::-p-xpath(//button[contains(., "${text}")])`);
-             if (handles.length > 0) element = handles[0];
+        try {
+          const element = await this.page.$(selector);
+          if (element) {
+            const isVisible = await element.evaluate((el: any) => {
+              const style = window.getComputedStyle(el);
+              return style && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetWidth > 0;
+            });
+            if (isVisible) {
+              logger.info('Consent popup detected, attempting to clear...', { selector });
+              await (element as any).click();
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              return true;
+            }
           }
-        } else {
-          element = await this.page.$(selector);
-        }
-
-        if (element) {
-          const isVisible = await element.evaluate((el: any) => {
-            const style = window.getComputedStyle(el);
-            return style && style.display !== 'none' && style.visibility !== 'hidden' && el.offsetWidth > 0;
-          });
-
-          if (isVisible) {
-            logger.info('Consent popup detected, attempting to clear...', { selector });
-            await (element as any).click();
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for it to close
-            return true;
-          }
+        } catch (e) {
+          continue;
         }
       }
       

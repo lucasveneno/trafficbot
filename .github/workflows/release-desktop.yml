@@ -1,0 +1,206 @@
+name: Desktop Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+          
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build Desktop (Mac)
+        # Desktop has its own lockfile and dependency tree.
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm ci --prefix apps/desktop && npm run build:desktop
+        
+      - name: Upload Mac Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trafficbot-macOS
+          path: |
+            apps/desktop/src-tauri/target/release/bundle/macos/Trafficbot.app
+            apps/desktop/src-tauri/target/release/bundle/macos/*.tar.gz
+            apps/desktop/src-tauri/target/release/bundle/macos/*.tar.gz.sig
+            apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+          
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build Desktop (Windows)
+        env:
+          # Required for Windows Code Signing
+          WINDOWS_SIGNING_CERT: ${{ secrets.WINDOWS_SIGNING_CERT }}
+          WINDOWS_SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PASSWORD }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm ci --prefix apps/desktop && npm run build:desktop
+        
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trafficbot-Windows
+          path: |
+            apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+            apps/desktop/src-tauri/target/release/bundle/nsis/*.zip
+            apps/desktop/src-tauri/target/release/bundle/nsis/*.zip.sig
+            apps/desktop/src-tauri/target/release/bundle/msi/*.msi
+
+  build-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v1
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install native dependencies
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2t64
+      - name: Build Linux desktop
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm ci && npm ci --prefix apps/desktop && npm run build:desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Trafficbot-Linux
+          path: |
+            apps/desktop/src-tauri/target/release/bundle/deb/*.deb
+            apps/desktop/src-tauri/target/release/bundle/appimage/*
+
+  build-workers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Build Workers
+        run: node scripts/build-workers.cjs
+        
+      - name: Sign Worker Manifest
+        env:
+          RELEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PRIVATE_KEY }}
+          ENFORCE_PRODUCTION_SIGNING: 'true'
+        run: node scripts/sign-release.cjs
+
+      - name: Upload Worker Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trafficbot-Workers
+          path: dist/workers/*
+
+  publish-release:
+    needs: [build-mac, build-windows, build-linux, build-workers]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download Mac Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Trafficbot-macOS
+          path: dist/release-assets
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Trafficbot-Linux
+          path: dist/release-assets
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Trafficbot-Windows
+          path: dist/release-assets
+      - name: Download Worker Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Trafficbot-Workers
+          path: dist/release-assets
+
+      - name: Generate SBOM
+        run: node scripts/generate-sbom.cjs
+
+      - name: Generate Updater JSON
+        run: node scripts/generate-updater-json.cjs
+
+      - name: Generate Build Provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'dist/release-assets/*'
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: false
+          files: |
+            dist/release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

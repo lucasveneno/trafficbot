@@ -26,6 +26,7 @@ export interface BrowserEngine {
   scroll(deltaX: number, deltaY: number): Promise<void>;
   mouseMove(x: number, y: number): Promise<void>;
   click(x: number, y: number): Promise<void>;
+  pressKey(key: string): Promise<void>;
   close(): Promise<void>;
   setExtraHeaders(headers: Record<string, string>): Promise<void>;
   setGeolocation(latitude: number, longitude: number): Promise<void>;

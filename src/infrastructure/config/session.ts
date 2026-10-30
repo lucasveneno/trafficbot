@@ -9,5 +9,6 @@ export function makeJob(config: ConfigType, index: number, random = Math.random)
     persistent: config.PERSISTENT_SESSIONS,
     profileKey: config.PERSISTENT_SESSIONS ? `session-${index}` : undefined,
     proxy: config.PROXY_URL ? { host: config.PROXY_URL, port: config.PROXY_PORT, username: config.PROXY_USER, password: config.PROXY_PASS } : undefined,
+    requirements: config.WORKER_PLATFORM && config.WORKER_PLATFORM !== 'auto' ? { platform: config.WORKER_PLATFORM as any } : undefined,
   });
 }

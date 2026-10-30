@@ -19,7 +19,7 @@ integration('Process roles and signals', () => {
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
     connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
-    queue = new Queue('traffic-sessions', { connection });
+    queue = new Queue('traffic-sessions-linux', { connection });
     await deadline(queue.waitUntilReady(), 3000, 'Redis test readiness');
     if (await queue.count()) throw new Error('Use an empty dedicated Redis');
   });
@@ -27,6 +27,11 @@ integration('Process roles and signals', () => {
     for (const child of children) child.kill('SIGKILL');
     children.clear();
     await queue.obliterate({ force: true });
+    const nativePlatform = process.platform === 'darwin' ? 'macos' : process.platform === 'win32' ? 'windows' : 'linux';
+    if (nativePlatform !== 'linux') {
+      const nativeQueue = new Queue(`traffic-sessions-${nativePlatform}`, { connection });
+      await nativeQueue.obliterate({ force: true }); await nativeQueue.close();
+    }
   });
   afterAll(async () => {
     await queue.close(); connection.disconnect();
@@ -44,7 +49,7 @@ integration('Process roles and signals', () => {
       HEADLESS: 'true', MATCH_GEOLOCATION: 'false', EXTERNAL_IP_CHECK: 'false', PERSISTENT_SESSIONS: 'false',
       PROXY_URL: '', PROXY_PORT: '', PROXY_USER: '', PROXY_PASS: '',
       REDIS_URL: redisUrl, REDIS_READY_TIMEOUT_MS: '1000', SHUTDOWN_TIMEOUT_MS: '4000',
-      HEALTH_PORT: String(port), LOCAL_FALLBACK: 'false', ...overrides,
+      HEALTH_PORT: String(port), LOCAL_FALLBACK: 'false', WORKER_PLATFORM: 'auto', CONTROL_API_ENABLED: 'false', ...overrides,
     }, stdio: 'pipe' });
     children.add(child);
     let output = '';
@@ -83,7 +88,7 @@ integration('Process roles and signals', () => {
     await new Promise<void>(resolve => reserve.listen(0, '127.0.0.1', resolve));
     const port = (reserve.address() as AddressInfo).port;
     await new Promise<void>(resolve => reserve.close(() => resolve()));
-    const process = await start(role, { REDIS_URL: `redis://127.0.0.1:${port}`, REDIS_READY_TIMEOUT_MS: '5000' });
+    const process = await start(role, { REDIS_URL: `redis://127.0.0.1:${port}${new URL(redisUrl).pathname}`, REDIS_READY_TIMEOUT_MS: '5000' });
     const timer = setTimeout(() => proxy.listen(port, '127.0.0.1'), 600);
     try {
       if (role !== 'producer') { await process.ready(); process.child.kill('SIGTERM'); }

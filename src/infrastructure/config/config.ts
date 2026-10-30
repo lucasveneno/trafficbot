@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import { homedir } from 'os';
+import { join } from 'path';
 import { httpUrl, proxySchema } from '../../domain/entities/SessionContract';
+import { workerPlatformSchema } from '../../domain/entities/WorkerContract';
+dotenv.config({ path: join(process.env.TRAFFICBOT_CONTROL_DIR || join(homedir(), '.trafficbot'), '.env') });
 dotenv.config();
 
 export const ConfigSchema = z.object({
@@ -28,6 +32,7 @@ export const ConfigSchema = z.object({
   REFERRALS: z.enum(['yes', 'no']).default('no'),
   HUMAN_BEHAVIOR: z.preprocess((a) => a === 'true' || a === '1' || a === true, z.boolean()).default(true),
   BEHAVIOR_INTENSITY: z.enum(['low', 'medium', 'high']).default('medium'),
+  BEHAVIOR_MODEL: z.enum(['generic', 'article_reader', 'infinite_scroll', 'form_filler']).default('generic'),
   REDIS_URL: z.string().default('redis://127.0.0.1:6379'),
   BOT_ROLE: z.enum(['producer', 'worker', 'both', 'local']).default('both'),
   ORGANIC_SEARCH: z.preprocess((val) => val === 'true', z.boolean()).default(false),
@@ -38,6 +43,7 @@ export const ConfigSchema = z.object({
   SEARCH_TARGET_VALUE: z.string().optional(),
   SEARCH_PAGES_LIMIT: z.coerce.number().min(1).max(10).default(1),
   SEARCH_ENGINE: z.enum(['google', 'bing', 'duckduckgo', 'random']).default('google'),
+  WORKER_PLATFORM: workerPlatformSchema.or(z.enum(['auto'])).default('auto'),
 }).superRefine((config, ctx) => {
   if (config.PROXY_URL || config.PROXY_PORT || config.PROXY_USER || config.PROXY_PASS) {
     if (!proxySchema.safeParse({ host: config.PROXY_URL, port: config.PROXY_PORT, username: config.PROXY_USER, password: config.PROXY_PASS }).success)

@@ -28,5 +28,11 @@ Thumbs.db
 .env.*
 !.env.example
 coverage/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/engine/*
+!apps/desktop/src-tauri/engine/.gitkeep
+apps/desktop/src-tauri/icons/android/
+apps/desktop/src-tauri/icons/ios/
 
 AUDIT.*

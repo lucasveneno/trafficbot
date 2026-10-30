@@ -17,7 +17,7 @@ export function reconcileRuntimeProfile(profile: BrowserProfile, stored?: Browse
   return validateProfile({ ...stored, browserVersion: profile.browserVersion, engineVersion: profile.engineVersion, userAgent: profile.userAgent, clientHints: profile.clientHints, osVersion: profile.osVersion });
 }
 
-export async function createRuntimeProfile(browser: Browser, requestedDevice = 'native', directory?: string, location?: ProfileLocation): Promise<BrowserProfile> {
+export async function createRuntimeProfile(browser: Browser, requestedDevice = 'native', directory?: string, location?: ProfileLocation, extraMetadata?: Partial<BrowserProfile>): Promise<BrowserProfile> {
   const release = UserAgentProvider.fromInstalledVersion(await browser.version());
   if (release.browser !== 'chrome') throw new Error('This runtime adapter requires real Chrome; other browser families need their native engine adapter');
   const os = BrowserProfileGenerator.hostOS();
@@ -50,6 +50,7 @@ export async function createRuntimeProfile(browser: Browser, requestedDevice = '
         platformVersion: native.metadata?.platformVersion || base.clientHints!.platformVersion,
         model: native.metadata?.model || '',
       },
+      ...extraMetadata
     });
     const stored = directory ? await ProfileStore.read(directory) : undefined;
     profile = reconcileRuntimeProfile(profile, stored, location);

@@ -16,7 +16,7 @@ integration('Redis integration: readiness, retries, reconnect, shutdown', () => 
   const payload = { url: 'http://127.0.0.1/', durationMinutes: 0.01, intensity: 'low' as const, persistent: false };
   beforeAll(async () => {
     connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
-    observer = new Queue('traffic-sessions', { connection });
+    observer = new Queue('traffic-sessions-linux', { connection });
     await deadline(observer.waitUntilReady(), 3000, 'Test Redis connection');
     // Dedicated test Redis only; refuse to overwrite existing work.
     if (await observer.count()) throw new Error('Use an empty dedicated test Redis');
@@ -46,7 +46,7 @@ integration('Redis integration: readiness, retries, reconnect, shutdown', () => 
   test('awaits delayed Redis before enabling distributed work', async () => {
     const timer = setTimeout(() => proxy.listen(port, '127.0.0.1'), 350);
     try {
-      await QueueService.initialize(`redis://127.0.0.1:${port}`, 5000);
+      await QueueService.initialize(`redis://127.0.0.1:${port}${new URL(redisUrl).pathname}`, 5000);
       expect(QueueService.isDistributedEnabled()).toBe(true);
       expect(await QueueService.addSession(payload)).toBeTruthy();
     } finally { clearTimeout(timer); }
@@ -60,7 +60,7 @@ integration('Redis integration: readiness, retries, reconnect, shutdown', () => 
   test('retries original failures three times and retains final failure', async () => {
     await QueueService.initialize(redisUrl, 3000);
     let calls = 0;
-    const worker = await QueueService.createWorker(async () => { calls++; throw new Error('controlled failure'); });
+    const worker = await QueueService.createWorker('linux', async () => { calls++; throw new Error('controlled failure'); });
     const finished = new Promise<void>(resolve => worker.on('failed', job => { if (job?.attemptsMade === 3) resolve(); }));
     const id = await QueueService.addSession(payload);
     await deadline(finished, 25000, 'Retries');
@@ -74,7 +74,7 @@ integration('Redis integration: readiness, retries, reconnect, shutdown', () => 
   test('worker rejects invalid payload before invoking the processor', async () => {
     await QueueService.initialize(redisUrl, 3000);
     const processor = jest.fn(async () => undefined);
-    const worker = await QueueService.createWorker(processor);
+    const worker = await QueueService.createWorker('linux', processor);
     const failed = new Promise<void>(resolve => worker.once('failed', () => resolve()));
     const job = await observer.add('execute-session', { url: 'file:///invalid', durationMinutes: -1 });
     await deadline(failed, 3000, 'Payload rejection');
@@ -83,12 +83,12 @@ integration('Redis integration: readiness, retries, reconnect, shutdown', () => 
     await job.remove();
   });
   test('temporary disconnect resumes queued work and drain waits for active work', async () => {
-    await QueueService.initialize(`redis://127.0.0.1:${port}`, 5000);
+    await QueueService.initialize(`redis://127.0.0.1:${port}${new URL(redisUrl).pathname}`, 5000);
     let release!: () => void;
     let started!: () => void;
     const active = new Promise<void>(resolve => { started = resolve; });
     const gate = new Promise<void>(resolve => { release = resolve; });
-    const worker = await QueueService.createWorker(async () => { started(); await gate; });
+    const worker = await QueueService.createWorker('linux', async () => { started(); await gate; });
     for (const socket of sockets) socket.destroy();
     const completed = new Promise<void>(resolve => worker.once('completed', () => resolve()));
     await QueueService.addSession(payload);

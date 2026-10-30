@@ -1,4 +1,21 @@
 import winston from 'winston';
+import TransportStream from 'winston-transport';
+
+type LogCallback = (info: any) => void;
+let logCallback: LogCallback | undefined;
+
+export function setLogCallback(cb: LogCallback) {
+  logCallback = cb;
+}
+
+class ControlServerTransport extends TransportStream {
+  log(info: any, callback: () => void) {
+    if (logCallback) {
+      logCallback(info);
+    }
+    callback();
+  }
+}
 
 export const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -17,5 +34,6 @@ export const logger = winston.createLogger({
     }),
     new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
     new winston.transports.File({ filename: 'logs/combined.log' }),
+    new ControlServerTransport(),
   ],
 });

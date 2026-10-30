@@ -26,6 +26,22 @@ browserTests('Real sandboxed browser against controlled local HTTP server', () =
       if (req.url === '/redirect') { res.writeHead(302, { Location: '/ok' }).end(); return; }
       if (req.url === '/escape') { res.writeHead(302, { Location: origin.replace('127.0.0.1', 'localhost') + '/escaped' }).end(); return; }
       if (req.url === '/escaped') escapedRequests++;
+      if (req.url === '/consent-button') { res.writeHead(200, { 'Content-Type': 'text/html' }).end('<html><body><button id="accept-btn">Accept all</button></body></html>'); return; }
+      if (req.url === '/consent-aria') { res.writeHead(200, { 'Content-Type': 'text/html' }).end('<html><body><button aria-label="Accept all">OK</button></body></html>'); return; }
+      if (req.url === '/consent-nested') { res.writeHead(200, { 'Content-Type': 'text/html' }).end('<html><body><button><span>Accept all</span></button></body></html>'); return; }
+      if (req.url === '/consent-hidden') { res.writeHead(200, { 'Content-Type': 'text/html' }).end('<html><body><button id="accept-btn" style="display:none">Accept all</button></body></html>'); return; }
+      if (req.url === '/consent-none') { res.writeHead(200, { 'Content-Type': 'text/html' }).end('<html><body><p>No consent here</p></body></html>'); return; }
+      if (req.url === '/search-results') { res.writeHead(200, { 'Content-Type': 'text/html' }).end('<html><body><a href="/page-one">Result One</a></body></html>'); return; }
+      if (req.url === '/search-spa') { res.writeHead(200, { 'Content-Type': 'text/html' }).end('<html><body><a href="javascript:void(0)">void</a></body></html>'); return; }
+      if (req.url === '/search-hidden') { res.writeHead(200, { 'Content-Type': 'text/html' }).end('<html><body><a href="/hidden-target" style="display:none">Target</a></body></html>'); return; }
+      if (req.url === '/search-5000') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.write('<html><body>');
+        for (let i = 0; i < 4999; i++) res.write('<a href="/ignore">Ignore</a> ');
+        res.write('<a href="/final-target">Target</a></body></html>');
+        res.end();
+        return;
+      }
       res.end('<html><body>Controlled test</body></html>');
     });
     await new Promise<void>((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
@@ -131,5 +147,41 @@ browserTests('Real sandboxed browser against controlled local HTTP server', () =
     const result = expect(wait).rejects.toThrow('cancelled');
     await engine.close();
     await result;
+  });
+
+  test('consent: detects button with matching text', async () => {
+    await engine.navigate(origin + '/consent-button');
+    expect(await engine.handleConsentPopups()).toBe(true);
+  });
+  test('consent: detects aria-label consent button', async () => {
+    await engine.navigate(origin + '/consent-aria');
+    expect(await engine.handleConsentPopups()).toBe(true);
+  });
+  test('consent: ignores hidden buttons', async () => {
+    await engine.navigate(origin + '/consent-hidden');
+    expect(await engine.handleConsentPopups()).toBe(false);
+  });
+  test('consent: returns false when no popup present', async () => {
+    await engine.navigate(origin + '/consent-none');
+    expect(await engine.handleConsentPopups()).toBe(false);
+  });
+
+  test('clickSearchResult: finds result by href pattern', async () => {
+    await engine.navigate(origin + '/search-results');
+    expect(await engine.clickSearchResult('page-one')).toBe(true);
+  });
+  test('clickSearchResult: ignores javascript: links', async () => {
+    await engine.navigate(origin + '/search-spa');
+    expect(await engine.clickSearchResult('void')).toBe(false);
+  });
+  test('clickSearchResult: ignores hidden links', async () => {
+    await engine.navigate(origin + '/search-hidden');
+    expect(await engine.clickSearchResult('hidden-target')).toBe(false);
+  });
+  test('clickSearchResult: completes in bounded round trips on 5000-anchor page', async () => {
+    await engine.navigate(origin + '/search-5000');
+    const start = Date.now();
+    expect(await engine.clickSearchResult('final-target')).toBe(true);
+    expect(Date.now() - start).toBeLessThan(5000);
   });
 });

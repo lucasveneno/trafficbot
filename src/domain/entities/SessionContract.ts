@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { sessionRequirementsSchema } from './WorkerContract';
 
 export const httpUrl = z.string().url().refine(value => {
   try {
@@ -26,12 +27,24 @@ export const sessionJobSchema = z.object({
   url: httpUrl,
   durationMinutes: z.number().finite().positive(),
   intensity: z.enum(['low', 'medium', 'high']),
+  behaviorModel: z.enum(['generic', 'article_reader', 'infinite_scroll', 'form_filler']).default('generic'),
   proxy: proxySchema.optional(),
   persistent: z.boolean().default(false),
   profileKey: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/).optional(),
   deviceProfile: z.string().regex(/^[a-z0-9-]+$/).optional(),
-}).strict().refine(data => !data.persistent || !!data.profileKey, 'Persistent sessions require a profile key');
+  requirements: sessionRequirementsSchema.optional(),
+  campaignId: z.string().optional(),
+  campaignConcurrency: z.number().int().min(1).max(100).optional(),
+  dispatchKey: z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/).optional(),
+  proxyMode: z.enum(['auto', 'direct', 'pool']).optional(),
+  proxyIds: z.array(z.string().uuid()).min(1).max(100).optional(),
+  proxyPool: z.array(z.object({ id: z.string().uuid(), proxy: proxySchema, maxConcurrentLeases: z.number().int().positive().optional() })).min(1).max(100).optional(),
+  scheduleId: z.string().optional(),
+}).strict().refine(data => !data.persistent || !!data.profileKey, 'Persistent sessions require a profile key')
+  .refine(data => !['direct', 'pool'].includes(data.proxyMode || '') || !data.proxy, 'Explicit proxy conflicts with proxy mode')
+  .refine(data => data.proxyMode !== 'pool' || !!data.proxyIds?.length || !!data.proxyPool?.length, 'Selected proxy pool is empty');
 export type TrafficJobData = z.infer<typeof sessionJobSchema>;
+export type TrafficJobInput = z.input<typeof sessionJobSchema>;
 export function proxyServer(proxy: z.infer<typeof proxySchema>): string {
   const url = new URL(proxy.host.includes('://') ? proxy.host : `http://${proxy.host}`);
   url.port = String(proxy.port);

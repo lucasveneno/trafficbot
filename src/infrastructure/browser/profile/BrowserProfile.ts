@@ -25,6 +25,13 @@ export const browserProfileSchema = z.object({
   source: z.enum(['catalog', 'runtime']), browser: browserFamilySchema, operatingSystem: operatingSystemSchema,
   browserVersion: z.string().regex(/^\d+(?:\.\d+){1,3}$/), osVersion: z.string(),
   engineVersion: z.string().regex(/^\d+(?:\.\d+){1,3}$/).optional(),
+  deviceSerial: z.string().optional(),
+  device: z.object({
+    manufacturer: z.string().optional(),
+    model: z.string().optional(),
+    androidVersion: z.string().optional(),
+    sdkVersion: z.number().optional()
+  }).optional(),
   userAgent: z.string().min(1), clientHints: clientHintsSchema.nullable(),
   viewport: size, screen: size.extend({ availWidth: z.number().int().positive(), availHeight: z.number().int().positive() }).strict(),
   devicePixelRatio: z.number().finite().positive(), mobile: z.boolean(), touch: z.boolean(),

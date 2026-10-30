@@ -55,6 +55,19 @@ jobs:
 
       - name: Run Redis integration tests
         run: npm run test:redis
+      - name: Verify campaign concurrency and dispatch recovery
+        run: REDIS_TEST_URL=redis://127.0.0.1:16389/3 npm run test:campaigns
+
+      - name: Setup Bun for E2E
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Build Linux Worker Binary
+        run: node scripts/build-workers.cjs
+
+      - name: Run Linux Updater E2E Test
+        run: node scripts/test-updater.cjs
 
       # Build the application using its production Dockerfile.
       - name: Build Docker image
@@ -87,3 +100,74 @@ jobs:
         with:
           name: runtime-dependency-audit
           path: audit-runtime.json
+
+  windows-verify:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm test -- --runInBand
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Start Redis on Windows
+        uses: supercharge/redis-github-action@1.8.0
+        with:
+          redis-version: 6
+
+      - name: Build Windows Worker Binary
+        run: node scripts/build-workers.cjs
+
+      - name: Run Windows Updater E2E Test
+        run: node scripts/test-updater.cjs
+
+  macos-verify:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Start Redis on macOS
+        uses: supercharge/redis-github-action@1.8.0
+        with:
+          redis-version: 6
+
+      - name: Build macOS Worker Binary
+        run: node scripts/build-workers.cjs
+
+      - name: Run macOS Updater E2E Test
+        run: node scripts/test-updater.cjs

@@ -37,7 +37,7 @@ describe('Production configuration and payload contract', () => {
   });
   test('rejects malformed queue payloads and traversal', () => {
     const valid = { url: 'http://localhost/', durationMinutes: 0.1, intensity: 'low', persistent: true, profileKey: 'profile-1' };
-    expect(sessionJobSchema.parse(valid)).toEqual(valid);
+    expect(sessionJobSchema.parse(valid)).toEqual({ ...valid, behaviorModel: "generic" });
     for (const patch of [{ durationMinutes: Infinity }, { profileKey: '../escape' }, { url: 'file:///etc/passwd' }, { unexpected: true }])
       expect(() => sessionJobSchema.parse({ ...valid, ...patch })).toThrow();
   });

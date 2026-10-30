@@ -2,6 +2,10 @@
 
 Browser session automation with persistent, internally consistent browser profiles.
 
+## Desktop campaign management
+
+Install dependencies with `npm ci` and `npm ci --prefix apps/desktop`, then use `npm run dev:desktop` (requires Rust and the Tauri platform prerequisites). Start Redis and execution workers separately. Campaigns support multiple targets, shared concurrency limits, finite runs, pause/resume and selected proxy pools. See [campaign execution](docs/campaign-execution.md) for behavior, limits and verification commands.
+
 ## Quick Start (Docker)
 
 Requires Docker with Compose support for optional `env_file` entries. Browser installation and system libraries are handled inside the image; you do not need to run `setup:linux` on the Docker host.
@@ -52,6 +56,25 @@ sudo npm run setup:linux
 ### Windows Setup
 
 Run installation, browser provisioning, and build commands above before `npm start`. Configure `.env` rather than using POSIX-style inline environment assignments. Ensure `SESSIONS_DATA_DIR` points to a writable directory. The interactive example script and dedicated integration-test npm scripts use POSIX shell syntax; run them in a compatible environment such as Git Bash or WSL.
+
+Windows execution natively supports both Google Chrome and Microsoft Edge if they are installed on the host machine. The worker dynamically detects these installations upon startup and advertises them to the distributed queue. To start a native Windows worker, use:
+```bash
+npm run worker
+```
+
+### Advanced Worker Tooling (Zero-Dependency Binaries)
+
+Trafficbot uses Bun's Single-Executable Application compiler to generate standalone binaries for workers. This allows you to distribute workers to external Windows, Linux, and macOS host machines *without* needing to install Node.js, NPM, or manage the repository on the remote machine.
+
+1. Install `bun` locally.
+2. Run the compilation script for your target platform:
+   ```bash
+   npm run build:worker:linux     # Generates dist/trafficbot-worker-linux
+   npm run build:worker:windows   # Generates dist/trafficbot-worker-windows.exe
+   npm run build:worker:macos     # Generates dist/trafficbot-worker-macos
+   ```
+3. Copy the generated binary and your `.env` file to the target machine.
+4. Execute the binary directly. Puppeteer will automatically manage and download Chrome locally if it is missing.
 
 ### Interactive examples
 
@@ -216,7 +239,10 @@ Producer exits after enqueueing; worker remains a service. All distributed roles
 
 1. **Infrastructure**: Deploy one Redis instance (standard in `docker-compose.yml`).
 2. **Producers**: Deploy one instance with `BOT_ROLE=producer`.
-3. **Workers**: Deploy as many instances as needed with `BOT_ROLE=worker`. Each worker will pull tasks from the shared queue according to its `MAX_SESSIONS` capacity.
+3. **Workers**: Deploy as many instances as needed with `BOT_ROLE=worker`. Each worker will pull tasks from the shared queue according to its `MAX_SESSIONS` capacity and its OS/Browser capabilities.
+   - **Linux Workers**: Run in Docker, advertising bundled Chromium.
+   - **Windows Native Workers**: Run on host machines, dynamically detecting installed Chrome or Edge executables.
+   - Tasks are automatically routed to the correct platform queue (`traffic-sessions:linux`, `traffic-sessions:windows`) based on the requested `BROWSER_PROFILE`.
 
 ## Browser identity
 

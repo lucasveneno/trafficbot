@@ -10,6 +10,7 @@ import { ProxyLocationProvider } from './ProxyLocationProvider';
 import { StableVersionProvider } from './StableVersionProvider';
 import { UserAgentProvider } from './UserAgentProvider';
 import { reconcileRuntimeProfile } from './RuntimeProfile';
+import { validateProfileConsistency } from './profileConsistency';
 
 const chrome = { browser: 'chrome' as const, version: '140.0.7339.80' };
 const brazil = { country: 'BR', timezone: 'America/Sao_Paulo', locale: 'pt-BR' };
@@ -128,3 +129,109 @@ test('stable provider validates live release data, caches with expiry, and does 
   expect(await provider.get('safari', '18.0')).toEqual({ browser: 'safari', version: '18.0' });
   expect(fetcher.mock.calls[0][1].signal).toBeDefined();
 });
+
+// ── Task A2 — Expanded device catalog test matrix ─────────────────────────
+
+describe('Device catalog — schema validity for all presets', () => {
+  test.each(deviceCatalog.map(device => [device.id, device] as const))(
+    '%s — schema valid',
+    (id, device) => {
+      let release: Parameters<typeof BrowserProfileGenerator.generate>[1];
+      if (device.browser === 'safari') {
+        release = { browser: 'safari', version: '18.0' };
+      } else if (device.browser === 'firefox') {
+        release = { browser: 'firefox', version: '142.0' };
+      } else if (device.browser === 'edge') {
+        release = { browser: 'edge', version: '140.0.3485.54', engineVersion: '140.0.7339.80' };
+      } else {
+        release = { browser: 'chrome', version: '140.0.7339.80' };
+      }
+      const profile = BrowserProfileGenerator.generate(id, release);
+      expect(() => validateProfile(profile)).not.toThrow();
+    },
+  );
+});
+
+describe('Device catalog — profile consistency for all presets', () => {
+  test.each(deviceCatalog.map(device => [device.id, device] as const))(
+    '%s — fully consistent',
+    (id, device) => {
+      let release: Parameters<typeof BrowserProfileGenerator.generate>[1];
+      if (device.browser === 'safari') {
+        release = { browser: 'safari', version: '18.0' };
+      } else if (device.browser === 'firefox') {
+        release = { browser: 'firefox', version: '142.0' };
+      } else if (device.browser === 'edge') {
+        release = { browser: 'edge', version: '140.0.3485.54', engineVersion: '140.0.7339.80' };
+      } else {
+        release = { browser: 'chrome', version: '140.0.7339.80' };
+      }
+      const profile = BrowserProfileGenerator.generate(id, release);
+      const issues = validateProfileConsistency(profile);
+      expect(issues).toEqual([]);
+    },
+  );
+});
+
+// ── Task A3 — ProfileStore persistence edge cases ─────────────────────────
+
+describe('ProfileStore — persistence edge cases', () => {
+  const chromeRelease = { browser: 'chrome' as const, version: '140.0.7339.80' };
+
+  test('new profile creation: write then read returns the same profile', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'trafficbot-store-new-'));
+    try {
+      const profile = BrowserProfileGenerator.generate('windows-chrome-1440', chromeRelease);
+      await ProfileStore.write(dir, profile);
+      expect(await ProfileStore.read(dir)).toEqual(profile);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('rehydration: write → close → re-read returns the same profile', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'trafficbot-store-rehydrate-'));
+    try {
+      const profile = BrowserProfileGenerator.generate('windows-chrome-1440', chromeRelease);
+      await ProfileStore.write(dir, profile);
+      // Simulate "close" by discarding the in-memory reference and reading again.
+      const rehydrated = await ProfileStore.read(dir);
+      expect(rehydrated).toEqual(profile);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('corrupted stored profile: invalid JSON causes read to throw', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'trafficbot-store-corrupt-'));
+    try {
+      await writeFile(join(dir, 'browser-profile.json'), '{bad json');
+      await expect(ProfileStore.read(dir)).rejects.toThrow();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('missing stored profile (ENOENT): read returns undefined', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'trafficbot-store-missing-'));
+    try {
+      expect(await ProfileStore.read(dir)).toBeUndefined();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('concurrent writes do not corrupt: 10 parallel writes, then read is valid', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'trafficbot-store-concurrent-'));
+    try {
+      const profile = BrowserProfileGenerator.generate('windows-chrome-1440', chromeRelease);
+      await Promise.allSettled(Array.from({ length: 10 }, () => ProfileStore.write(dir, profile)));
+      const stored = await ProfileStore.read(dir);
+      expect(() => validateProfile(stored)).not.toThrow();
+      expect(stored).toEqual(profile);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+

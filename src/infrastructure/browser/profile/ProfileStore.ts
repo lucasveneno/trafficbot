@@ -1,9 +1,17 @@
 import { mkdir, readFile, rename, writeFile, unlink, readdir } from 'fs/promises';
 import { join } from 'path';
 import { BrowserProfile, validateProfile } from './BrowserProfile';
+import { SessionPersistenceStrategy, DesktopProfilePersistenceStrategy, AndroidDevicePersistenceStrategy } from './SessionPersistenceStrategy';
 
 /** The caller must hold ProfileLease for this directory for the entire browser session. */
 export class ProfileStore {
+  static getStrategy(profile: BrowserProfile): SessionPersistenceStrategy {
+    if (profile.operatingSystem === 'android') {
+      return new AndroidDevicePersistenceStrategy();
+    }
+    return new DesktopProfilePersistenceStrategy();
+  }
+
   /** Disable Chrome's own startup/session restore before launch. Restored tabs
    * can issue requests before page-scoped identity and scope policy exist. */
   static async prepareChromePreferences(directory: string): Promise<void> {

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Trafficbot",
+  "version": "2.0.1",
+  "identifier": "com.trafficbot.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [{ "label": "main", "title": "Trafficbot", "width": 1440, "height": 900, "minWidth": 1100, "minHeight": 700 }],
+    "security": { "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost http://127.0.0.1:4782 ws://127.0.0.1:4782; object-src 'none'; base-uri 'self'" }
+  },
+  "bundle": { "active": true, "targets": ["app"], "createUpdaterArtifacts": true, "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"], "resources": { "engine/trafficbot-sidecar*": "engine/" } },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/lucasveneno/trafficbot/releases/latest/download/updater.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEyMUYzRkM5OTkxQjUwQTMKUldTalVCdVp5VDhmRWphc3BqOU1PamY5RUg5MWRtbzlEUytmSGVRb3g4VWI3VnB2Wml5cDF0TzIK"
+    }
+  }
+}
