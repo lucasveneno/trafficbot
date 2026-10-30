@@ -21,6 +21,7 @@ import { campaignInput } from '../campaigns/CampaignInput';
 import { Config } from '../../infrastructure/config/config';
 import { CampaignRunner } from '../campaigns/CampaignRunner';
 import { campaignJob } from '../campaigns/CampaignJob';
+import { SessionTelemetry } from '../../infrastructure/monitoring/SessionTelemetry';
 
 export class ControlServer {
   private server: Server;
@@ -55,6 +56,14 @@ export class ControlServer {
       next();
     });
     app.use(express.json({ limit: '64kb' }));
+
+    app.get('/api/sessions/:id/diagnostics', async (req, res) => {
+      const redis = QueueService.getRedis();
+      if (!redis || redis.status !== 'ready') { res.status(503).json({ error: 'Redis is not ready' }); return; }
+      if (!/^[A-Za-z0-9_-]{1,512}$/.test(String(req.params.id))) { res.sendStatus(400); return; }
+      try { res.json(await SessionTelemetry.diagnostics(redis, String(req.params.id), req.query.screenshot === '1')); }
+      catch { res.status(503).json({ error: 'Session diagnostics unavailable' }); }
+    });
 
     // ── Core snapshot routes ─────────────────────────────────────────
     app.get('/api/system', async (_req, res) => { if (!this.current) await this.refresh(); res.json(this.current!.system); });
@@ -564,13 +573,16 @@ export class ControlServer {
     });
 
     // ── Logs ────────────────────────────────────────────────────────
-    app.get('/api/logs', (req, res) => {
-      const limit = Math.min(Number(req.query.limit) || 200, this.LOG_BUFFER_MAX);
+    app.get('/api/logs', async (req, res) => {
+      const limit = Math.max(1, Math.min(Number(req.query.limit) || 200, this.LOG_BUFFER_MAX));
       const level = req.query.level as string | undefined;
-      const lines = level
-        ? this.logBuffer.filter(e => e.level === level)
-        : this.logBuffer;
-      res.json(lines.slice(-limit));
+      try {
+        const redis = QueueService.getRedis();
+        const workerLogs = redis?.status === 'ready' ? await SessionTelemetry.logs(redis) : [];
+        const query = String(req.query.search || '').slice(0, 512).toLowerCase();
+        const lines = [...this.logBuffer, ...workerLogs].filter(e => (!level || e.level === level) && (!query || JSON.stringify(e).toLowerCase().includes(query)));
+        res.json(lines.sort((a, b) => a.ts.localeCompare(b.ts)).slice(-limit));
+      } catch { res.status(503).json({ error: 'Logs temporarily unavailable' }); }
     });
 
     // ── Error handler ────────────────────────────────────────────────

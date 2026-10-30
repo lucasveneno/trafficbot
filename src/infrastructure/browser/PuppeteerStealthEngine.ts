@@ -151,6 +151,11 @@ export class PuppeteerStealthEngine implements BrowserEngine {
     this.navigationState = 'idle';
   }
 
+  async captureFailureScreenshot(): Promise<Uint8Array | undefined> {
+    if (!this.page || this.page.isClosed()) return undefined;
+    return this.page.screenshot({ type: 'jpeg', quality: 55, fullPage: false });
+  }
+
   async navigate(url: string): Promise<void> {
     if (!this.page) throw new Error('Engine not initialized');
     this.navigationState = 'navigating';

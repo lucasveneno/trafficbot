@@ -159,7 +159,7 @@ function Console() {
     Profiles: 'Persistent browser profile inventory.',
     Proxies: 'Proxy pool and health monitoring.',
     Schedules: 'Scheduled campaign execution.',
-    Logs: 'Real-time log stream from the controller.',
+    Logs: 'Search controller logs and worker session events.',
     Settings: 'Controller and desktop configuration.',
   }
 

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
-import type { ControlSnapshot, SessionView } from '../types/control'
+import type { ControlSnapshot, SessionView, SessionDiagnostics } from '../types/control'
 import { Badge } from '../components/Badge'
 import { PlatformIcon, platformLabel } from '../components/PlatformIcon'
 import { StatusDot } from '../components/StatusDot'
@@ -27,6 +27,26 @@ function SessionDetailPanel({
   onClose: () => void
   connection?: Connection | null
 }) {
+  const [diagnostics, setDiagnostics] = useState<SessionDiagnostics>({ events: [] })
+  const [diagnosticError, setDiagnosticError] = useState('')
+  const [screenshot, setScreenshot] = useState('')
+  const [imageStatus, setImageStatus] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    let disposed = false, loading = false
+    setDiagnostics({ events: [] }); setScreenshot(''); setImageStatus(''); setDiagnosticError('')
+    async function load() {
+      if (!connection || loading) return
+      loading = true
+      try { const result = await sessionApi.diagnostics(connection, session.id); if (!disposed) { setDiagnostics(result); setDiagnosticError('') } }
+      catch { if (!disposed) setDiagnosticError('Timeline unavailable. Reconnecting…') }
+      finally { loading = false }
+    }
+    void load()
+    const timer = setInterval(() => void load(), 2000)
+    return () => { disposed = true; clearInterval(timer) }
+  }, [connection, session.id])
+  const lastFailure = [...diagnostics.events].reverse().find(event => event.phase === 'failed' || event.phase === 'cancelled')
   return (
     <div className="detail-panel" role="complementary" aria-label="Session details">
       <button className="detail-close" onClick={onClose} aria-label="Close">
@@ -42,13 +62,14 @@ function SessionDetailPanel({
         </div>
       </div>
       <div style={{ marginBottom: 16 }}>
-        <button onClick={() => useUI.getState().setLogFilter(session.executionId || session.url)}>Search related logs</button>
+        <button onClick={() => useUI.getState().setLogFilter(session.id)}>Search related logs</button>
         <Badge value={session.status} />
-        {connection && ['active', 'queued', 'delayed', 'failed'].includes(session.status) && <button onClick={() => {
+        {connection && ['active', 'queued', 'delayed', 'failed'].includes(session.status) && <button disabled={busy} onClick={() => {
           const retry = session.status === 'failed'
           if (!confirm(`${retry ? 'Retry' : 'Stop'} this session?`)) return
-          void (retry ? sessionApi.retry(connection, session.id) : sessionApi.stop(connection, session.id)).then(() => toast.success(retry ? 'Retry queued' : 'Stop requested')).catch(e => toast.error(String(e)))
-        }}>{session.status === 'failed' ? 'Retry session' : 'Stop session'}</button>}
+          setBusy(true)
+          void (retry ? sessionApi.retry(connection, session.id) : sessionApi.stop(connection, session.id)).then(() => toast.success(retry ? 'Retry queued — follow the next attempt below' : 'Stop requested')).catch(e => toast.error(String(e))).finally(() => setBusy(false))
+        }}>{busy ? 'Requesting…' : session.status === 'failed' ? 'Retry session' : 'Stop session'}</button>}
       </div>
 
       <div className="detail-subheader">Identity</div>
@@ -60,10 +81,16 @@ function SessionDetailPanel({
         <div className="detail-row"><dt>Profile ID</dt><dd>{session.profileId ?? '—'}</dd></div>
         <div className="detail-row"><dt>Profile type</dt><dd>{session.persistent ? 'Persistent' : 'Ephemeral'}</dd></div>
         <div className="detail-row"><dt>Proxy</dt><dd>{session.proxy}</dd></div>
+        {session.campaignId && <div className="detail-row"><dt>Campaign</dt><dd><button onClick={() => useUI.getState().setLogFilter(session.campaignId!)}>{session.campaignId}</button></dd></div>}
       </div>
 
       <div className="detail-subheader">Execution</div>
-      <ol aria-label="Session timeline">{[['Queued', session.createdAt], ['Started', session.startedAt], [session.status === 'failed' ? 'Failed' : 'Finished', session.finishedAt]].map(([label, timestamp]) => timestamp && <li key={label}>{label} · {time(timestamp)}</li>)}</ol>
+      {diagnosticError && <p role="status">{diagnosticError}</p>}
+      <ol className="session-timeline" aria-label="Session timeline">
+        <li><time>{time(session.createdAt)}</time><strong>Queued</strong></li>
+        {diagnostics.events.map(event => <li key={event.id} data-phase={event.phase}><time>{time(event.ts)}</time><strong>{event.phase.replaceAll('_', ' ')}</strong><span>Attempt {event.attempt}{event.workerId ? ` · ${event.workerId}` : ''}</span><p>{event.message}</p></li>)}
+        {!diagnostics.events.length && <li>{session.startedAt ? `Worker started at ${time(session.startedAt)}. ` : ''}Waiting for worker telemetry. Older sessions may have no recorded timeline.</li>}
+      </ol>
       <div className="detail-section">
         <div className="detail-row"><dt>Worker</dt><dd>{session.workerId ?? 'Unassigned'}</dd></div>
         <div className="detail-row"><dt>Attempts</dt><dd>{session.attempts}</dd></div>
@@ -77,7 +104,13 @@ function SessionDetailPanel({
         <>
           <div className="detail-subheader error-subheader">Error</div>
           <div className="detail-section">
-            <div className="error-message">{session.error}</div>
+            <div className="error-message">{lastFailure?.message || session.error}</div>
+            {connection && <button disabled={imageStatus === 'Loading screenshot…'} onClick={() => {
+              setImageStatus('Loading screenshot…')
+              void sessionApi.diagnostics(connection, session.id, true).then(result => { setScreenshot(result.screenshot || ''); setImageStatus(result.screenshot ? '' : 'No screenshot available. The browser may not have started, or the capture expired.') }).catch(() => setImageStatus('Screenshot unavailable. Try again.'))
+            }}>Load failure screenshot</button>}
+            {imageStatus && <p role="status">{imageStatus}</p>}
+            {screenshot && <img className="failure-screenshot" src={screenshot} alt="Browser viewport captured when this session failed" />}
           </div>
         </>
       )}
@@ -211,6 +244,7 @@ export function Sessions({
 
       {selected && (
         <SessionDetailPanel
+          key={selected.id}
           connection={connection}
           session={data?.sessions.find((s) => s.id === selected.id) ?? selected}
           onClose={() => setSelected(null)}

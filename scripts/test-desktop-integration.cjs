@@ -18,7 +18,7 @@ async function main() {
   const directory = await mkdtemp(join(tmpdir(), 'trafficbot-desktop-integration-'));
   let requests = 0, ws, proxied = 0;
   const paths = new Set();
-  const fixture = createServer((req, res) => { requests++; paths.add(req.url); res.end('<html><body>Desktop integration fixture</body></html>'); });
+  const fixture = createServer((req, res) => { requests++; paths.add(req.url); if (req.url === '/failure') res.statusCode = 500; res.end('<html><body>Desktop integration fixture</body></html>'); });
   const proxy = createServer((req, res) => {
     if (req.headers['proxy-authorization'] !== 'Basic ' + Buffer.from('pool-user:pool-secret').toString('base64')) { res.writeHead(407, { 'Proxy-Authenticate': 'Basic realm="fixture"' }); res.end(); return; }
     if (req.url.includes('campaign.fixture.test')) proxied++;
@@ -57,6 +57,10 @@ async function main() {
     await until(() => events.some(e => e.type === 'session.finished'), 'live session finished', 30000);
     const completed = (await (await call('/api/sessions')).json()).find(s => s.status === 'completed');
     assert.equal(completed.workerId, workers[0].id); assert.equal(completed.url, target); assert.ok(requests > 0);
+    const timeline = await (await call(`/api/sessions/${completed.id}/diagnostics`)).json();
+    assert.deepEqual(timeline.events.map(e => e.phase), ['started', 'browser_started', 'navigating', 'browsing', 'completed']);
+    assert.ok(timeline.events.every(e => e.sessionId === completed.id && e.workerId === workers[0].id && e.attempt === 1));
+    assert.ok(!timeline.screenshot, 'screenshots are fetched only on request');
     // A user stop must cancel the browser and suppress automatic retry.
     assert.equal((await call('/api/sessions', 'POST', { url: target, durationMinutes: 10, intensity: 'low', persistent: false, requirements: { platform: workers[0].platform, browser: 'chrome' } })).status, 202);
     const running = await until(async () => (await (await call('/api/sessions')).json()).find(s => s.status === 'active'), 'cancellable session');
@@ -66,6 +70,16 @@ async function main() {
     const retried = await until(async () => (await (await call('/api/sessions')).json()).find(s => s.id === running.id && s.status === 'active'), 'manual retry');
     assert.equal((await call(`/api/sessions/${retried.id}/stop`, 'POST')).status, 202);
     await until(async () => (await (await call('/api/system')).json()).counts.active === 0, 'retry cancellation');
+    const retryTimeline = await (await call(`/api/sessions/${running.id}/diagnostics`)).json();
+    assert.ok(retryTimeline.events.some(e => e.phase === 'cancelled' && e.attempt === 1));
+    assert.ok(retryTimeline.events.some(e => e.phase === 'started' && e.attempt === 2));
+    assert.equal((await call('/api/sessions', 'POST', { url: target + 'failure', durationMinutes: 0.01, intensity: 'low', persistent: false, requirements: { platform: workers[0].platform, browser: 'chrome' } })).status, 202);
+    const failed = await until(async () => (await (await call('/api/sessions')).json()).find(s => s.url === target + 'failure' && s.status === 'failed'), 'HTTP failure', 40000);
+    const failureDetails = await (await call(`/api/sessions/${failed.id}/diagnostics?screenshot=1`)).json();
+    assert.ok(failureDetails.events.some(e => e.phase === 'failed' && e.message.includes('HTTP 500')));
+    assert.ok(failureDetails.screenshot.startsWith('data:image/jpeg;base64,'), 'failure screenshot survives browser cleanup');
+    const linkedLogs = await (await call(`/api/logs?search=${failed.id}`)).json();
+    assert.ok(linkedLogs.length > 0 && linkedLogs.every(e => e.meta.sessionId === failed.id));
     const campaignConfig = { name: 'Local multi-target campaign', url: target + 'one', targets: [target + 'one', target + 'two'], concurrency: 2, totalSessions: 4, durationMinutes: 0.05, intensity: 'low', behaviorModel: 'generic', persistent: false, proxyMode: 'direct', requirements: { platform: workers[0].platform, browser: 'chrome' }, schedule: { mode: 'immediate' } };
     const created = await call('/api/campaigns', 'POST', campaignConfig); assert.equal(created.status, 201); const campaign = await created.json();
     assert.equal((await call(`/api/campaigns/${campaign.id}/status`, 'PATCH', { status: 'active' })).status, 200);
@@ -94,7 +108,7 @@ async function main() {
     assert.equal(worker.exitCode, 0, worker.output());
     assert.equal((await call('/api/engine/shutdown', 'POST')).status, 202);
     await until(() => controller.exitCode !== null, 'controller graceful exit').catch(error => { throw new Error(`${error.message}: ${controller.output()}`) }); assert.equal(controller.exitCode, 0, controller.output());
-    console.log('PASS: controller startup, authenticated API, real browser Stop/Retry, multi-target campaign pause/resume/completion, selected proxy authentication with separate worker storage, campaign totals, and graceful exits.');
+    console.log('PASS: controller startup, authenticated API, worker timeline and retry history, HTTP failure screenshot, linked logs, real browser Stop/Retry, multi-target campaign pause/resume/completion, selected proxy authentication with separate worker storage, campaign totals, and graceful exits.');
   } finally {
     ws?.terminate();
     for (const child of children) if (child.exitCode === null) child.kill('SIGTERM');

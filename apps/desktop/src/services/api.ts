@@ -1,4 +1,4 @@
-import type { CampaignView, CampaignJobOptions, ProfileView, LogEntry, ScheduleView, ScheduleJobOptions } from '../types/control'
+import type { CampaignView, CampaignJobOptions, ProfileView, LogEntry, ScheduleView, ScheduleJobOptions, SessionDiagnostics } from '../types/control'
 import type { Connection } from './control'
 
 function headers(conn: Connection) {
@@ -36,6 +36,7 @@ async function del(conn: Connection, path: string): Promise<void> {
 
 // ── Campaign API ─────────────────────────────────────────────────────
 export const sessionApi = {
+  diagnostics: (conn: Connection, id: string, screenshot = false) => get<SessionDiagnostics>(conn, `/api/sessions/${encodeURIComponent(id)}/diagnostics${screenshot ? '?screenshot=1' : ''}`),
   stop: (conn: Connection, id: string) => post(conn, `/api/sessions/${encodeURIComponent(id)}/stop`, {}),
   retry: (conn: Connection, id: string) => post(conn, `/api/sessions/${encodeURIComponent(id)}/retry`, {}),
 }
@@ -84,10 +85,11 @@ export const metricsApi = {
 
 // ── Logs API ─────────────────────────────────────────────────────────
 export const logsApi = {
-  get: (conn: Connection, params?: { limit?: number; level?: string }) => {
+  get: (conn: Connection, params?: { limit?: number; level?: string; search?: string }) => {
     const qs = new URLSearchParams()
     if (params?.limit) qs.set('limit', String(params.limit))
     if (params?.level) qs.set('level', params.level)
+    if (params?.search) qs.set('search', params.search)
     return get<LogEntry[]>(conn, `/api/logs${qs.size ? `?${qs}` : ''}`)
   },
 }

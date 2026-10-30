@@ -19,6 +19,7 @@ export interface BrowserOptions {
 export interface BrowserEngine {
   init(options: BrowserOptions): Promise<void>;
   getProfile(): BrowserProfile;
+  captureFailureScreenshot?(): Promise<Uint8Array | undefined>;
   navigate(url: string): Promise<void>;
   navigationResult(allowFailure?: boolean): { status: number; finalUrl: string };
   wait(ms: number): Promise<void>;

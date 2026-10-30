@@ -326,3 +326,6 @@ CI saves the current report as the `runtime-dependency-audit` artifact. Its audi
 ## License
 
 MIT
+## Session visibility
+
+The desktop session inspector shows worker execution timelines, attempt history, failure summaries, and on-demand failure screenshots. Session and campaign links open searchable worker events in Logs. See [session visibility](docs/session-visibility.md) for retention and troubleshooting.

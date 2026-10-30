@@ -10,6 +10,7 @@ import { sessionJobSchema } from '../../domain/entities/SessionContract';
 import type { TrafficJobData, TrafficJobInput } from '../../domain/entities/SessionContract';
 import type { WorkerPlatform } from '../../domain/entities/WorkerContract';
 import { WorkerRegistry } from '../worker/WorkerRegistry';
+import { SessionTelemetry, failureSummary } from '../monitoring/SessionTelemetry';
 export type { TrafficJobData, TrafficJobInput } from '../../domain/entities/SessionContract';
 
 export class QueueService {
@@ -26,6 +27,7 @@ export class QueueService {
       retryStrategy: attempt => Math.min(100 * attempt, 2000),
     });
     this.redisConnection = connection;
+    SessionTelemetry.initialize(connection);
     connection.on('error', () => logger.warn('Redis unavailable; reconnecting, readiness suspended'));
     try {
       const ready = new Promise<void>(resolve => connection.once('ready', resolve));
@@ -122,7 +124,16 @@ export class QueueService {
       if (campaign && campaignLimit && !await reserveCampaign(this.redisConnection!, campaign, reservation, campaignLimit, job.data.durationMinutes)) {
         await job.moveToDelayed(Date.now() + 1000, token); throw new DelayedError();
       }
-      try { await processor(job); if (await this.redisConnection?.get(cancellationKey)) { job.discard(); throw new Error('Session cancelled'); } }
+      try { await SessionTelemetry.run({ sessionId: Buffer.from(`${queueName}/${job.id}`).toString('base64url'), campaignId: job.data.campaignId, workerId: workerId || WorkerRegistry.findLocalWorker(platform, deviceSerial)?.workerId, attempt: job.attemptsMade + 1 }, async () => {
+        try {
+          await processor(job);
+          if (await this.redisConnection?.get(cancellationKey)) { job.discard(); throw new Error('Session cancelled'); }
+          await SessionTelemetry.event('completed', 'Session completed and browser resources released.');
+        } catch (error) {
+          if (!(error instanceof CapacityUnavailable)) await SessionTelemetry.event(/cancel/i.test(error instanceof Error ? error.message : String(error)) ? 'cancelled' : 'failed', failureSummary(error));
+          throw error;
+        }
+      }); }
       catch (error) {
         if (error instanceof CapacityUnavailable) { await job.moveToDelayed(Date.now() + 1000, token); throw new DelayedError(); }
         if (await this.redisConnection?.get(cancellationKey)) job.discard(); throw error;
@@ -190,6 +201,7 @@ export class QueueService {
       if (!drained) await Promise.allSettled(workers.map(worker => worker.disconnect()));
       // Disconnect shared Redis before awaiting queue closure: queued commands must not hang shutdown.
       connection?.disconnect();
+      SessionTelemetry.initialize(null);
       await Promise.allSettled(queues.map(q => deadline(q.close(), 1000, 'Queue close')));
     }
   }

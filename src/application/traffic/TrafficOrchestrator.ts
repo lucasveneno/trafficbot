@@ -8,6 +8,8 @@ import { sessionJobSchema, proxyServer } from '../../domain/entities/SessionCont
 import { acquireProfile } from '../../infrastructure/browser/ProfileLease';
 import { ReputationService } from '../../infrastructure/monitoring/ReputationService';
 import { BehaviorFactory } from './behaviors/BehaviorFactory';
+import { SessionTelemetry } from '../../infrastructure/monitoring/SessionTelemetry';
+import { deadline } from '../../infrastructure/lifecycle/deadline';
 
 export class TrafficOrchestrator {
   constructor(private engine: BrowserEngine) {}
@@ -45,6 +47,8 @@ export class TrafficOrchestrator {
         searchOrigins: Config.ORGANIC_SEARCH ? ['https://www.google.com', 'https://www.bing.com', 'https://duckduckgo.com'] : []
       });
       const viewport = this.engine.getProfile().viewport;
+      await SessionTelemetry.event('browser_started', 'Browser launched with the assigned profile.');
+      await SessionTelemetry.event('navigating', 'Navigating to the configured target.');
 
       // 2. Organic Search or Referrer Spoofing
       if (Config.ORGANIC_SEARCH && Config.SEARCH_KEYWORDS.length > 0) {
@@ -142,6 +146,7 @@ export class TrafficOrchestrator {
       }
       
       const sessionDeadline = startTime + config.durationMs;
+      await SessionTelemetry.event('browsing', 'Target navigation finished; running session behavior.');
       const behaviorModel = BehaviorFactory.create(config.behaviorModel || 'generic');
       logger.info(`Executing behavior model: ${behaviorModel.name}`);
       await behaviorModel.execute(this.engine, config, sessionDeadline);
@@ -157,6 +162,12 @@ export class TrafficOrchestrator {
     } catch (error: unknown) {
       failed = true;
       failure = error;
+      if (!/cancel/i.test(error instanceof Error ? error.message : String(error))) {
+        try {
+          const screenshot = this.engine.captureFailureScreenshot ? await deadline(this.engine.captureFailureScreenshot(), 1500, 'Failure screenshot') : undefined;
+          if (screenshot) await SessionTelemetry.screenshot(screenshot);
+        } catch { /* Diagnostics must never replace the execution failure. */ }
+      }
       try { outcome = this.engine.navigationResult(true); } catch { /* No response before launch/navigation failure. */ }
       logger.error('Session execution failed', { 
         id: config.id, 
@@ -223,6 +234,7 @@ export class TrafficOrchestrator {
       });
 
       const startTime = Date.now();
+      await SessionTelemetry.event('started', 'Worker accepted session and acquired execution resources.');
       await this.run(session, {
         headless: Config.HEADLESS,
       });

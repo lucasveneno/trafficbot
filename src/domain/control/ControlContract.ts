@@ -20,6 +20,12 @@ export interface SessionView {
   error: string | null; attempts: number; deviceSerial?: string;
   campaignId?: string; scheduleId?: string;
 }
+export type SessionPhase = 'started' | 'browser_started' | 'navigating' | 'browsing' | 'completed' | 'failed' | 'cancelled';
+export interface SessionEvent {
+  id: string; ts: string; sessionId: string; campaignId?: string; workerId?: string;
+  attempt: number; phase: SessionPhase; message: string;
+}
+export interface SessionDiagnostics { events: SessionEvent[]; screenshot?: string }
 export interface QueueView { id: string; platform: Platform; label: string; deviceSerial?: string; waiting: number; active: number; completed: number; failed: number; delayed: number }
 export interface SystemView {
   application: 'trafficbot'; apiVersion: 1; status: 'healthy' | 'degraded' | 'stopping';

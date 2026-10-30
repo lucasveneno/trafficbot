@@ -32,6 +32,11 @@ export class AndroidChromeDriver implements BrowserEngine {
     return structuredClone(this.profile);
   }
 
+  async captureFailureScreenshot(): Promise<Uint8Array | undefined> {
+    if (!this.page || this.page.isClosed()) return undefined;
+    return this.page.screenshot({ type: 'jpeg', quality: 55, fullPage: false });
+  }
+
   navigationResult(allowFailure = false): { status: number; finalUrl: string } {
     if (!allowFailure && this.scopeError) throw this.scopeError;
     if (!this.lastResponse) throw new Error('No navigation response');

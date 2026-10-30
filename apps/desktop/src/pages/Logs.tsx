@@ -29,11 +29,15 @@ function LogLine({ entry }: { entry: LogEntry }) {
       style={{ background: LEVEL_BG[entry.level] }}
       onClick={() => hasMeta && setExpanded(e => !e)}
       role={hasMeta ? 'button' : undefined}
+      tabIndex={hasMeta ? 0 : undefined}
+      aria-expanded={hasMeta ? expanded : undefined}
+      onKeyDown={e => { if (hasMeta && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setExpanded(value => !value) } }}
     >
       <span className="log-ts">{new Date(entry.ts).toLocaleTimeString()}</span>
       <span className="log-level" style={{ color: LEVEL_COLORS[entry.level] }}>{entry.level.toUpperCase()}</span>
       {entry.service && <span className="log-service">{entry.service}</span>}
       <span className="log-msg">{entry.message}</span>
+      {entry.meta && <span className="log-correlation">{['campaignId', 'sessionId', 'workerId'].map(key => entry.meta?.[key] ? `${key}: ${String(entry.meta[key])}` : '').filter(Boolean).join(' · ')}</span>}
       {hasMeta && !expanded && <span className="log-expand">+meta</span>}
       {hasMeta && expanded && (
         <pre className="log-meta">{JSON.stringify(entry.meta, null, 2)}</pre>
@@ -52,26 +56,29 @@ export function Logs({ connection }: { connection: Connection | null }) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const pausedRef = useRef(paused)
+  const requestVersion = useRef(0)
   useEffect(() => { pausedRef.current = paused }, [paused])
 
   const load = useCallback(async () => {
     if (!connection || pausedRef.current) return
+    const version = ++requestVersion.current
     try {
       const data = await logsApi.get(connection, {
         limit: 500,
         level: level === 'all' ? undefined : level,
+        search,
       })
-      setEntries(data)
-      setError('')
+      if (version === requestVersion.current && !pausedRef.current) { setEntries(data); setError('') }
     } catch (e) {
-      setError(String(e))
+      if (version === requestVersion.current) setError(String(e))
     }
-  }, [connection, level])
+  }, [connection, level, search])
 
   // Initial load
   useEffect(() => {
     setLoading(true)
-    void load().finally(() => setLoading(false))
+    const timer = setTimeout(() => void load().finally(() => setLoading(false)), 250)
+    return () => { clearTimeout(timer); requestVersion.current++ }
   }, [load])
 
   // Poll every 3 seconds
@@ -86,7 +93,7 @@ export function Logs({ connection }: { connection: Connection | null }) {
   }, [entries, paused])
 
   const handleExport = () => {
-    const text = entries.map(e => `[${e.ts}] [${e.level.toUpperCase()}] ${e.service ? `[${e.service}] ` : ''}${e.message}`).join('\n')
+    const text = filtered.map(e => JSON.stringify(e)).join('\n')
     const blob = new Blob([text], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = `trafficbot-logs-${Date.now()}.txt`; a.click()
@@ -142,7 +149,7 @@ export function Logs({ connection }: { connection: Connection | null }) {
           <div className="empty-panel" style={{ padding: 40 }}>
             <div className="empty-icon"><FileText size={28} /></div>
             <h2>No log entries in buffer</h2>
-            <p>The in-memory log buffer holds up to 2 000 recent lines from the controller process. Entries appear here as the engine runs.</p>
+            <p>Recent controller logs and worker session events appear here. Worker events retain up to 2,000 entries for 24 hours of inactivity.</p>
           </div>
         )}
 
