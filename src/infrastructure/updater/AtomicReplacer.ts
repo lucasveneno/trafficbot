@@ -40,14 +40,16 @@ export class AtomicReplacer {
     const currentSha256 = await computeFileSha256(currentBin);
 
     // Remove stale previous (keep only one generation)
-    await fs.rm(previousBin, { force: true });
+    try {
+      await fs.rm(previousBin, { force: true });
+    } catch {
+      const retired = `${previousBin}.retired.${Date.now()}`;
+      await fs.rename(previousBin, retired).catch(() => {});
+      await fs.rm(retired, { force: true }).catch(() => {});
+    }
     await fs.rm(previousMeta, { force: true });
 
-    if (os.platform() === 'win32') {
-      await this.replaceWindows(currentBin, newBin, previousBin);
-    } else {
-      await this.replacePosix(currentBin, newBin, previousBin);
-    }
+    await this.replacePosix(currentBin, newBin, previousBin);
 
     const meta: RollbackMeta = {
       version: 'unknown', // Will be filled in by WorkerUpdater
@@ -59,11 +61,13 @@ export class AtomicReplacer {
     return meta;
   }
 
-  /** Linux/macOS: rename-based atomic swap (same filesystem required). */
+  /** Atomic rename swap (works on POSIX and Windows NTFS where running images allow rename). */
   static async replacePosix(currentBin: string, newBin: string, previousBin: string): Promise<void> {
-    // Ensure executable bit
-    try { await fs.chmod(newBin, 0o755); } catch {
-      throw new UpdateError(UpdateErrorCode.UPDATE_PERMISSION_DENIED, `Cannot chmod ${newBin}`);
+    // Ensure executable bit on POSIX
+    if (os.platform() !== 'win32') {
+      try { await fs.chmod(newBin, 0o755); } catch {
+        throw new UpdateError(UpdateErrorCode.UPDATE_PERMISSION_DENIED, `Cannot chmod ${newBin}`);
+      }
     }
 
     // Move current → previous (atomic rename)
@@ -71,27 +75,22 @@ export class AtomicReplacer {
       throw new UpdateError(UpdateErrorCode.UPDATE_REPLACE_FAILED, `Failed to create backup: ${e}`);
     }
 
-    // Move new → current (atomic rename, or stage in target dir if cross-device)
+    // Move new → current (atomic rename, or stage copy in target dir if cross-device or scan-locked)
     try {
       await fs.rename(newBin, currentBin);
-    } catch (e: any) {
-      if (e?.code === 'EXDEV') {
-        const staged = `${currentBin}.new`;
-        try {
-          await fs.copyFile(newBin, staged);
-          await fs.chmod(staged, 0o755);
-          await fs.rename(staged, currentBin);
-          await fs.rm(newBin, { force: true });
-          return;
-        } catch (copyErr) {
-          await fs.rm(staged, { force: true }).catch(() => {});
-          try { await fs.rename(previousBin, currentBin); } catch { /* best effort */ }
-          throw new UpdateError(UpdateErrorCode.UPDATE_REPLACE_FAILED, `Binary replacement failed across devices, previous restored: ${copyErr}`);
-        }
+    } catch {
+      const staged = `${currentBin}.new.${Date.now()}`;
+      try {
+        await fs.copyFile(newBin, staged);
+        if (os.platform() !== 'win32') await fs.chmod(staged, 0o755);
+        await fs.rename(staged, currentBin);
+        await fs.rm(newBin, { force: true }).catch(() => {});
+        return;
+      } catch (copyErr) {
+        await fs.rm(staged, { force: true }).catch(() => {});
+        try { await fs.rename(previousBin, currentBin); } catch { /* best effort */ }
+        throw new UpdateError(UpdateErrorCode.UPDATE_REPLACE_FAILED, `Binary replacement failed, previous restored: ${copyErr}`);
       }
-      // Attempt restore
-      try { await fs.rename(previousBin, currentBin); } catch { /* best effort */ }
-      throw new UpdateError(UpdateErrorCode.UPDATE_REPLACE_FAILED, `Binary replacement failed, previous restored: ${e}`);
     }
   }
 
@@ -189,23 +188,24 @@ Remove-Item -LiteralPath '${psEscape(scriptPath)}' -Force -ErrorAction SilentlyC
       }
     }
 
-    if (os.platform() !== 'win32') {
-      // POSIX: swap current → stale, previous → current
-      const stale = currentBin + '.rollback_stale';
-      await fs.rm(stale, { force: true });
-      try { await fs.rename(currentBin, stale); } catch { /* current may already be broken */ }
+    // Swap current → stale, previous → current (works on POSIX and Windows NTFS)
+    const stale = `${currentBin}.rollback_stale.${Date.now()}`;
+    await fs.rm(stale, { force: true }).catch(() => {});
+    try { await fs.rename(currentBin, stale); } catch { /* current may already be broken */ }
+    try {
       try {
         await fs.rename(previousBin, currentBin);
-        await fs.chmod(currentBin, 0o755);
-      } catch (e) {
-        // Attempt restore of the broken current
-        try { await fs.rename(stale, currentBin); } catch { /* best effort */ }
-        throw new UpdateError(UpdateErrorCode.ROLLBACK_FAILED, `Rollback rename failed: ${e}`);
+      } catch {
+        await fs.copyFile(previousBin, currentBin);
+        await fs.rm(previousBin, { force: true }).catch(() => {});
       }
-      await fs.rm(stale, { force: true });
-    } else {
-      await this.replaceWindows(currentBin, previousBin, currentBin + '.rollback_stale');
+      if (os.platform() !== 'win32') await fs.chmod(currentBin, 0o755);
+    } catch (e) {
+      // Attempt restore of the broken current
+      try { await fs.rename(stale, currentBin); } catch { /* best effort */ }
+      throw new UpdateError(UpdateErrorCode.ROLLBACK_FAILED, `Rollback rename failed: ${e}`);
     }
+    await fs.rm(stale, { force: true }).catch(() => {});
   }
 }
 

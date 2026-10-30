@@ -19,6 +19,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { logger } from '../logging/logger';
 import { QueueService } from '../queue/QueueService';
@@ -124,25 +125,38 @@ async function waitForDrain(workerId: string): Promise<void> {
 export class WorkerUpdater {
   private static currentState: WorkerUpdateState = 'idle';
   private static currentUpdateId: string | null = null;
+  private static beforeRestartHook: (() => Promise<void>) | null = null;
 
   static getState(): WorkerUpdateState { return this.currentState; }
   static getUpdateId(): string | null { return this.currentUpdateId; }
+  static setBeforeRestartHook(hook: (() => Promise<void>) | null): void {
+    this.beforeRestartHook = hook;
+  }
 
   static async initialize(): Promise<void> {
-    // Clean up stale update files (especially on Windows)
-    try {
-      const dir = path.dirname(process.execPath);
-      await fs.rm(path.join(dir, 'trafficbot-worker.new'), { force: true });
-      if (os.platform() === 'win32') {
-        const tmp = os.tmpdir();
-        const files = await fs.readdir(tmp);
-        for (const file of files) {
-          if (file.startsWith('trafficbot-update-') && file.endsWith('.ps1')) {
-            await fs.rm(path.join(tmp, file), { force: true }).catch(() => {});
+    const cleanStaleFiles = async () => {
+      try {
+        const dir = path.dirname(process.execPath);
+        await fs.rm(path.join(dir, 'trafficbot-worker.new'), { force: true }).catch(() => {});
+        const entries = await fs.readdir(dir).catch(() => [] as string[]);
+        for (const file of entries) {
+          if (file.includes('.rollback_stale') || file.includes('.retired.') || file.includes('.new.')) {
+            await fs.rm(path.join(dir, file), { force: true }).catch(() => {});
           }
         }
-      }
-    } catch {}
+        if (os.platform() === 'win32') {
+          const tmp = os.tmpdir();
+          const files = await fs.readdir(tmp);
+          for (const file of files) {
+            if (file.startsWith('trafficbot-update-') && file.endsWith('.ps1')) {
+              await fs.rm(path.join(tmp, file), { force: true }).catch(() => {});
+            }
+          }
+        }
+      } catch {}
+    };
+    await cleanStaleFiles();
+    setTimeout(() => { void cleanStaleFiles(); }, 2000).unref?.();
   }
 
   // ── public API ──────────────────────────────────────────────────────────
@@ -158,7 +172,7 @@ export class WorkerUpdater {
     const fromVersion = APPLICATION_VERSION;
     let releaseLock: (() => Promise<void>) | null = null;
 
-    const emit = (state: WorkerUpdateState, extra?: Partial<UpdateEvent>) => {
+    const emit = async (state: WorkerUpdateState, extra?: Partial<UpdateEvent>) => {
       this.currentState = state;
       const event: UpdateEvent = {
         workerId, updateId, state, fromVersion, targetVersion: null,
@@ -167,7 +181,7 @@ export class WorkerUpdater {
       logger.info('worker.update.event', event as any);
       // Publish event to Redis for Control Server consumption
       const redis = QueueService.getRedis();
-      redis?.publish(`traffic:worker:${workerId}:update-events`, JSON.stringify(event)).catch(() => {});
+      await redis?.publish(`traffic:worker:${workerId}:update-events`, JSON.stringify(event)).catch(() => {});
     };
 
     try {
@@ -292,23 +306,17 @@ export class WorkerUpdater {
       }, null, 2));
 
       // ── 11. Install & restart ────────────────────────────────────────────
-      emit('installing', { targetVersion });
+      await emit('installing', { targetVersion });
       logger.info(`[update:${updateId}] Binary replaced. Initiating restart...`);
-      emit('restarting', { targetVersion });
+      await emit('restarting', { targetVersion });
 
       if (releaseLock) {
         await releaseLock().catch(() => {});
         releaseLock = null;
       }
 
-      if (os.platform() === 'win32') {
-        // replaceWindows already spawns the restart helper and we exit below
-        // (the helper was already called inside AtomicReplacer.replace on Windows)
-        process.exit(0);
-      } else {
-        // POSIX: re-exec ourselves using the same config args
-        await restartProcess(workerId);
-      }
+      await this.beforeRestartHook?.().catch(() => {});
+      await restartProcess(workerId, currentBin);
 
     } catch (e) {
       const errorCode = e instanceof UpdateError ? e.code : 'UNKNOWN';
@@ -362,8 +370,8 @@ export class WorkerUpdater {
         await releaseLock().catch(() => {});
         releaseLock = null;
       }
-      if (os.platform() === 'win32') process.exit(0); // The replacement helper owns the restart.
-      await restartProcess(workerId);
+      await this.beforeRestartHook?.().catch(() => {});
+      await restartProcess(workerId, currentBin);
 
     } catch (e) {
       this.currentState = 'failed';
@@ -445,8 +453,7 @@ export class WorkerUpdater {
  * Preserves workerId via the saved ~/.trafficbot-worker/config.json.
  * Does NOT forward process.argv to avoid carrying dangerous/stale flags.
  */
-async function restartProcess(_workerId: string): Promise<never> {
-  const { spawn } = await import('node:child_process');
+async function restartProcess(_workerId: string, binaryPath = process.execPath): Promise<never> {
   const args: string[] = [];
 
   // Load persisted enrollment config if available
@@ -456,12 +463,19 @@ async function restartProcess(_workerId: string): Promise<never> {
     args.push('--config', configPath);
   } catch { /* no config file, use defaults */ }
 
-  const child = spawn(process.execPath, args, {
+  const child = spawn(binaryPath, args, {
     detached: true,
     stdio: 'ignore',
+    cwd: process.cwd(),
     env: { ...process.env },
+    windowsHide: true,
+  });
+  await new Promise<void>((resolve, reject) => {
+    child.once('spawn', () => resolve());
+    child.once('error', reject);
   });
   child.unref();
+  await new Promise(r => setTimeout(r, 50));
   process.exit(0);
 }
 

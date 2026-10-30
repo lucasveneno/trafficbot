@@ -26,10 +26,6 @@ jobs:
         id: release
         with:
           release-type: node
-          extra-files: |
-            apps/desktop/package.json
-            apps/desktop/src-tauri/tauri.conf.json
-            apps/desktop/src-tauri/Cargo.toml
 
       - name: Checkout repository
         uses: actions/checkout@v4

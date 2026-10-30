@@ -76,7 +76,7 @@ function WorkerDetailPanel({ worker, connection, onClose }: { worker: WorkerView
                 `Update worker ${worker.id}?\n\nCurrent: ${worker.version || 'unknown'}\n\n` +
                 `Trafficbot will drain active sessions before updating. Active sessions will not be interrupted.`
               )) {
-                connection && workerApi.update(connection, worker.id);
+                if (connection) void workerApi.update(connection, worker.id);
               }
             }}
           >
@@ -100,7 +100,7 @@ function WorkerDetailPanel({ worker, connection, onClose }: { worker: WorkerView
                 `Rollback worker ${worker.id} to ${worker.rollbackVersion || 'previous version'}?\n\n` +
                 `Trafficbot will drain active sessions before rolling back.`
               )) {
-                connection && workerApi.rollback(connection, worker.id);
+                if (connection) void workerApi.rollback(connection, worker.id);
               }
             }}
           >

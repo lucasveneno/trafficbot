@@ -90,7 +90,14 @@ async function main() {
     const restored = await ready(versionA, initial.workerId);
     assert.notEqual(restored.workerId, updated.workerId);
     console.log(`PASS: signed ${platform} update ${versionA} -> ${versionB} -> rollback ${versionA}`);
-  } catch (error) { console.error(output); throw error; }
+  } catch (error) {
+    console.error(output);
+    const combinedLog = await fs.readFile(path.join(directory, 'logs', 'combined.log'), 'utf8').catch(() => '');
+    if (combinedLog) console.error('--- combined.log ---\n' + combinedLog.slice(-12000));
+    const dirEntries = await fs.readdir(directory).catch(() => []);
+    console.error('--- directory entries ---', dirEntries);
+    throw error;
+  }
   finally {
     for (const worker of await workers().catch(() => [])) remember(worker);
     for (const pid of pids) {

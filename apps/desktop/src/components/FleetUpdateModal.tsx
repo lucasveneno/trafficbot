@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { X, Play } from 'lucide-react'
 import type { Connection } from '../services/control'
 import { fleetApi } from '../services/api'
@@ -11,16 +11,16 @@ export function FleetUpdateModal({ connection, onClose }: { connection: Connecti
   const [maxConcurrent, setMaxConcurrent] = useState(3)
   const [minCapacityPct, setMinCapacityPct] = useState(50)
   
-  const fetchActive = async () => {
+  const fetchActive = useCallback(async () => {
     const data = await fleetApi.getActiveRollout(connection)
     setActive(data)
-  }
+  }, [connection])
 
   useEffect(() => {
-    fetchActive()
+    void fetchActive()
     const timer = setInterval(fetchActive, 2000)
     return () => clearInterval(timer)
-  }, [connection])
+  }, [fetchActive])
 
   const startRollout = async () => {
     await fleetApi.startRollout(connection, {

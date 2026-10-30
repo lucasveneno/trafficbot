@@ -102,14 +102,47 @@ async function bootstrap(): Promise<void> {
     process.env.REDIS_URL = enrollment.redisUrl;
     Config.REDIS_URL = enrollment.redisUrl;
   }
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const onError = (err: Error) => {
+          health.removeListener('listening', onListening);
+          reject(err);
+        };
+        const onListening = () => {
+          health.removeListener('error', onError);
+          resolve();
+        };
+        health.once('error', onError);
+        health.once('listening', onListening);
+        health.listen(Config.HEALTH_PORT, '127.0.0.1');
+      });
+      break;
+    } catch (err: any) {
+      if (err?.code === 'EADDRINUSE' && attempt < 20) {
+        await new Promise(r => setTimeout(r, 250));
+        continue;
+      }
+      throw err;
+    }
+  }
   health.on('error', () => { logger.error('Health server failed'); void shutdown(1); });
-  await new Promise<void>((resolve, reject) => {
-    health.once('error', reject);
-    health.listen(Config.HEALTH_PORT, '127.0.0.1', resolve);
-  });
   
   // Initialize updaters safely
   const { WorkerUpdater } = require('./infrastructure/worker/WorkerUpdater');
+  WorkerUpdater.setBeforeRestartHook(async () => {
+    stopping = true;
+    if (monitor) clearInterval(monitor);
+    await new Promise<void>(resolve => health.close(() => resolve()));
+    await commandListener?.stop().catch(() => {});
+    await QueueService.close(2000).catch(() => {});
+    if (distributed) {
+      const { MetricsCollector } = require('./application/metrics/MetricsCollector');
+      await MetricsCollector.close().catch(() => {});
+    }
+    const { ReleaseManager } = require('./infrastructure/updater/ReleaseManager');
+    await ReleaseManager.close().catch(() => {});
+  });
   await WorkerUpdater.initialize().catch(() => {});
   
   // Desktop normally runs the dedicated controller. Workers opt in explicitly

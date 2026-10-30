@@ -4538,7 +4538,7 @@ dependencies = [
 
 [[package]]
 name = "trafficbot-desktop"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "dirs 6.0.0",
  "reqwest 0.12.28",

@@ -298,7 +298,7 @@ function BulkImportModal({ connection, onClose }: { connection: Connection | nul
           username: username || undefined,
           password: password || undefined,
         })
-      } catch (e) {
+      } catch {
         invalidCount++
       }
     }

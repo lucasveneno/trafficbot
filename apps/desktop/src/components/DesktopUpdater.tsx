@@ -14,13 +14,6 @@ export function DesktopUpdater() {
   const [error, setError] = useState<string>('')
   const [progress, setProgress] = useState(0)
 
-  useEffect(() => {
-    getVersion().then(setVersion).catch(console.error)
-    checkForUpdates()
-    const interval = setInterval(checkForUpdates, 6 * 60 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [])
-
   const checkForUpdates = async () => {
     setStatus('checking')
     setError('')
@@ -38,6 +31,13 @@ export function DesktopUpdater() {
       setStatus('failed')
     }
   }
+
+  useEffect(() => {
+    getVersion().then(setVersion).catch(console.error)
+    void checkForUpdates()
+    const interval = setInterval(checkForUpdates, 6 * 60 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const installUpdate = async () => {
     if (!updateInfo) return
