@@ -6,6 +6,18 @@
 - **Fleet Enrollment & Signed Self-Updates:** Add worker enrollment tokens, ECDSA-signed release manifests, atomic binary replacement, and automatic rollback across Linux, Windows, and macOS.
 - **CI & Packaging Hardening:** Add cross-platform Linux, Windows, and macOS verification workflows, desktop test gates, and clean npm package file filtering.
 
+## [2.1.0](https://github.com/lucasveneno/trafficbot/compare/v2.0.1...v2.1.0) (2026-10-30)
+
+
+### Features
+
+* add npm publish workflow ([55f9203](https://github.com/lucasveneno/trafficbot/commit/55f92036a43b526e5c1f663a80ea4e75a28a8f3e))
+
+
+### Bug Fixes
+
+* **updater:** perform atomic in-process binary replacement and release health port before worker restart ([bc3803a](https://github.com/lucasveneno/trafficbot/commit/bc3803a28791b245897f77973aa815726d63c56b))
+
 ## [2.0.1] - 2026-09-26
 
 - **Publishing & Metadata:** Scope package to `@lucasveneno/trafficbot`, add Github repository link, and set `files` to `dist` for public npm registry release.
