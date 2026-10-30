@@ -39,7 +39,7 @@ const DEV_INTERPRETER_NAMES = new Set(['node', 'bun', 'tsx', 'ts-node', 'jest', 
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function workerConfigDir(): string {
-  return path.join(os.homedir(), '.trafficbot-worker');
+  return process.env.TRAFFICBOT_WORKER_CONFIG_DIR || path.join(os.homedir(), '.trafficbot-worker');
 }
 
 function updateDir(): string {
@@ -353,6 +353,7 @@ export class WorkerUpdater {
       await AtomicReplacer.rollback(currentBin);
 
       logger.info(`[rollback:${updateId}] Rollback complete. Restarting...`);
+      if (os.platform() === 'win32') process.exit(0); // The replacement helper owns the restart.
       await restartProcess(workerId);
 
     } catch (e) {
@@ -440,7 +441,7 @@ async function restartProcess(_workerId: string): Promise<never> {
   const args: string[] = [];
 
   // Load persisted enrollment config if available
-  const configPath = path.join(os.homedir(), '.trafficbot-worker', 'config.json');
+  const configPath = path.join(workerConfigDir(), 'config.json');
   try {
     await fs.access(configPath);
     args.push('--config', configPath);

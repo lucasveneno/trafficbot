@@ -4,7 +4,7 @@ import os from 'os';
 
 export class EnrollmentClient {
   static get configPath() {
-    return path.join(os.homedir(), '.trafficbot-worker', 'config.json');
+    return path.join(process.env.TRAFFICBOT_WORKER_CONFIG_DIR || path.join(os.homedir(), '.trafficbot-worker'), 'config.json');
   }
 
   static async enroll(token: string, serverUrl: string) {

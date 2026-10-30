@@ -31,11 +31,6 @@ if (args[0] === 'enroll') {
       process.exit(1);
     });
   });
-} else {
-  // Normal worker startup — check if we just finished an update
-  import('./infrastructure/worker/WorkerUpdater').then(({ WorkerUpdater }) => {
-    WorkerUpdater.checkPendingUpdateMarker().catch(() => {});
-  });
 }
 
 const engines = new Set<PuppeteerStealthEngine>();
@@ -71,9 +66,9 @@ function shutdown(code = 0): Promise<void> {
       if (distributed) {
         const { MetricsCollector } = require('./application/metrics/MetricsCollector');
         await MetricsCollector.close().catch(() => {});
-        const { ReleaseManager } = require('./infrastructure/updater/ReleaseManager');
-        await ReleaseManager.close().catch(() => {});
       }
+      const { ReleaseManager } = require('./infrastructure/updater/ReleaseManager');
+      await ReleaseManager.close().catch(() => {});
       await deadline(Promise.allSettled([...engines].map(engine => engine.close())), Math.floor(Config.SHUTDOWN_TIMEOUT_MS / 3), 'Browser shutdown');
       complete = true;
     } catch { process.exitCode = 1; }
@@ -114,14 +109,14 @@ async function bootstrap(): Promise<void> {
   });
   
   // Initialize updaters safely
-  const { ReleaseManager } = require('./infrastructure/updater/ReleaseManager');
-  await ReleaseManager.initialize().catch(() => {});
   const { WorkerUpdater } = require('./infrastructure/worker/WorkerUpdater');
   await WorkerUpdater.initialize().catch(() => {});
   
   // Desktop normally runs the dedicated controller. Workers opt in explicitly
   // so several local workers cannot compete for the same management port.
   if (process.env.CONTROL_API_ENABLED === 'true') {
+    const { ReleaseManager } = require('./infrastructure/updater/ReleaseManager');
+    await ReleaseManager.initialize().catch(() => {});
     const { ControlServer } = require('./application/api/ControlServer');
     controlServer = new ControlServer(undefined, { shutdown });
     await controlServer.start(Number(process.env.CONTROL_PORT || 4782), '127.0.0.1');
@@ -195,6 +190,7 @@ async function bootstrap(): Promise<void> {
 
     for (const capabilities of workerCapabilitiesList) {
       await WorkerRegistry.registerWorker(capabilities);
+      await WorkerUpdater.checkPendingUpdateMarker().catch(() => {});
       
       const { QueueNameResolver } = require('./infrastructure/queue/QueueNameResolver');
       const queueName = QueueNameResolver.getPlatformQueue(capabilities.platform);

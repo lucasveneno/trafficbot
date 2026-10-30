@@ -1,11 +1,19 @@
 
 name: Verify
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     env:
       REDIS_HOST: 127.0.0.1
@@ -44,6 +52,9 @@ jobs:
       - name: Check generated artifacts
         run: npm run check:artifacts
 
+      - name: Check updater test syntax
+        run: node --check scripts/test-updater.cjs
+
       - name: Build project
         run: npm run build
 
@@ -67,6 +78,8 @@ jobs:
         run: node scripts/build-workers.cjs
 
       - name: Run Linux Updater E2E Test
+        env:
+          REDIS_TEST_URL: redis://127.0.0.1:16389/4
         run: node scripts/test-updater.cjs
 
       # Build the application using its production Dockerfile.
@@ -103,6 +116,9 @@ jobs:
 
   windows-verify:
     runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      REDIS_URL: redis://127.0.0.1:6379
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -119,6 +135,14 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Start Redis-compatible server on Windows
+        shell: pwsh
+        run: |
+          choco install memurai-developer --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'Memurai installation failed' }
+          Start-Service Memurai
+          node scripts/wait-for-redis.cjs
+
       - name: Run unit tests
         run: npm test -- --runInBand
 
@@ -127,19 +151,19 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Start Redis on Windows
-        uses: supercharge/redis-github-action@1.8.0
-        with:
-          redis-version: 6
-
       - name: Build Windows Worker Binary
         run: node scripts/build-workers.cjs
 
       - name: Run Windows Updater E2E Test
+        env:
+          REDIS_TEST_URL: redis://127.0.0.1:6379/4
         run: node scripts/test-updater.cjs
 
   macos-verify:
     runs-on: macos-latest
+    timeout-minutes: 20
+    env:
+      REDIS_URL: redis://127.0.0.1:16389
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -162,12 +186,15 @@ jobs:
           bun-version: latest
 
       - name: Start Redis on macOS
-        uses: supercharge/redis-github-action@1.8.0
-        with:
-          redis-version: 6
+        run: |
+          brew install redis
+          redis-server --bind 127.0.0.1 --port 16389 --save '' --appendonly no --daemonize yes
+          node scripts/wait-for-redis.cjs
 
       - name: Build macOS Worker Binary
         run: node scripts/build-workers.cjs
 
       - name: Run macOS Updater E2E Test
+        env:
+          REDIS_TEST_URL: redis://127.0.0.1:16389/4
         run: node scripts/test-updater.cjs

@@ -113,8 +113,8 @@ if (Get-Process -Id $targetPid -ErrorAction SilentlyContinue) {
   exit 1
 }
 # Rename old → previous, new → current
-Rename-Item -Path '${psEscape(currentBin)}' -NewName '${psEscape(path.basename(previousBin))}' -Force
-Rename-Item -Path '${psEscape(newBin)}' -NewName '${psEscape(path.basename(currentBin))}' -Force
+Move-Item -LiteralPath '${psEscape(currentBin)}' -Destination '${psEscape(previousBin)}' -Force
+Move-Item -LiteralPath '${psEscape(newBin)}' -Destination '${psEscape(currentBin)}' -Force
 # Restart worker
 Start-Process -FilePath '${psEscape(currentBin)}' ${restartArgs ? `-ArgumentList ${restartArgs}` : ''}
 # Cleanup self

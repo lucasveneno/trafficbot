@@ -104,7 +104,9 @@ export class ReleaseManager {
 
   static async initialize() {
     await this.refresh();
+    if (this.fetchTimer) clearInterval(this.fetchTimer);
     this.fetchTimer = setInterval(() => { void this.refresh(); }, 30 * 60 * 1000);
+    this.fetchTimer.unref?.();
   }
 
   static async close() {

@@ -1,175 +1,102 @@
-const http = require('node:http');
-const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const { createReadStream } = require('node:fs');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
-const crypto = require('node:crypto');
 const os = require('node:os');
-
-// We need an ephemeral key for the test
-const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', {
-  namedCurve: 'prime256v1',
-  publicKeyEncoding: { type: 'spki', format: 'pem' },
-  privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-});
-
-const isWin = process.platform === 'win32';
-const ext = isWin ? '.exe' : '';
-const binName = \`trafficbot-worker-\${process.platform}-\${process.arch}\${ext}\`;
-
-const workDir = path.join(os.tmpdir(), 'Trafficbot Update Test');
-fs.mkdirSync(workDir, { recursive: true });
-
-const binAPath = path.join(workDir, 'worker-vA' + ext);
-const binBPath = path.join(workDir, 'worker-vB' + ext);
-const manifestPath = path.join(workDir, 'manifest-vB.json');
-
-// Copy binary A and B
-fs.copyFileSync(path.join(__dirname, '../dist/workers', binName), binAPath);
-fs.copyFileSync(path.join(__dirname, '../dist/workers', binName), binBPath);
-
-// Generate manifest B
-const sha256 = crypto.createHash('sha256').update(fs.readFileSync(binBPath)).digest('hex');
-const size = fs.statSync(binBPath).size;
-const manifestB = {
-  version: '2.0.2-test',
-  protocolVersion: 1,
-  compatibility: 'compatible',
-  releasedAt: new Date().toISOString(),
-  assets: {
-    [\`\${process.platform}-\${process.arch}\`]: {
-      file: 'worker-vB' + ext,
-      size,
-      sha256
-    }
+const crypto = require('node:crypto');
+const { createServer } = require('node:http');
+const { spawn, spawnSync } = require('node:child_process');
+const Redis = require('ioredis');
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function until(check, label, timeout = 60000) {
+  const end = Date.now() + timeout;
+  while (Date.now() < end) { const result = await check(); if (result) return result; await pause(250); }
+  throw new Error(`Timed out: ${label}`);
+}
+async function main() {
+  if (!process.env.REDIS_TEST_URL) throw new Error('Set REDIS_TEST_URL to an empty disposable Redis database');
+  const root = path.resolve(__dirname, '..');
+  const platform = process.platform === 'darwin' ? 'macos' : process.platform === 'win32' ? 'windows' : 'linux';
+  const ext = process.platform === 'win32' ? '.exe' : '';
+  const artifactKey = `${platform}-${process.arch}`;
+  const redis = new Redis(process.env.REDIS_TEST_URL, { maxRetriesPerRequest: 1, connectTimeout: 2000, retryStrategy: () => null });
+  redis.on('error', () => {});
+  await redis.ping();
+  if (await redis.dbsize()) { redis.disconnect(); throw new Error('Updater test database must be empty'); }
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'Trafficbot Update Test '));
+  const running = path.join(directory, `worker-current${ext}`), next = path.join(directory, `worker-next${ext}`);
+  const pids = new Set(); let child, server, output = '';
+  async function workers() {
+    const values = await Promise.all((await redis.keys('traffic:workers:*')).map(key => redis.get(key)));
+    return values.filter(Boolean).map(value => JSON.parse(value));
   }
-};
-fs.writeFileSync(manifestPath, JSON.stringify(manifestB, null, 2));
-
-// Sign manifest B
-const sign = crypto.createSign('SHA256');
-sign.update(JSON.stringify(manifestB, null, 2));
-sign.end();
-const signature = sign.sign(privateKey, 'base64');
-fs.writeFileSync(manifestPath + '.sig', signature);
-
-const server = http.createServer((req, res) => {
-  if (req.url === '/manifest.json') {
-    res.writeHead(200, {'Content-Type': 'application/json'});
-    res.end(fs.readFileSync(manifestPath));
-  } else if (req.url === '/manifest.json.sig') {
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.end(fs.readFileSync(manifestPath + '.sig'));
-  } else if (req.url === '/' + manifestB.assets[\`\${process.platform}-\${process.arch}\`].file) {
-    res.writeHead(200, {'Content-Type': 'application/octet-stream'});
-    res.end(fs.readFileSync(binBPath));
-  } else {
-    res.writeHead(404);
-    res.end();
+  function remember(worker) {
+    const pid = Number(worker.workerId.slice(worker.workerId.lastIndexOf('-') + 1));
+    assert.ok(worker.workerId.startsWith(os.hostname() + '-') && Number.isInteger(pid) && pid > 0);
+    pids.add(pid); return worker;
   }
-});
-
-server.listen(0, '127.0.0.1', () => {
-  const port = server.address().port;
-  console.log(\`[test] Server listening on \${port}\`);
-  
-  const env = {
-    ...process.env,
-    TRAFFICBOT_UPDATE_BASE_URL: \`http://127.0.0.1:\${port}\`,
-    TRAFFICBOT_ALLOW_HTTP_UPDATE: '1',
-    RELEASE_PUBLIC_KEY: publicKey,
-    REDIS_URL: process.env.REDIS_URL || 'redis://127.0.0.1:6379'
-  };
-
-  const worker = spawn(binAPath, [], { env, stdio: 'pipe' });
-  let workerId = '';
-
-  worker.stdout.on('data', (d) => {
-    const s = d.toString();
-    process.stdout.write(s);
-    const m = s.match(/"workerId":"([^"]+)"/);
-    if (m && !workerId) {
-      workerId = m[1];
-      console.log(\`[test] Worker started, PID: \${worker.pid} Worker ID: \${workerId}\`);
-      
-      setTimeout(() => {
-        console.log(\`[test] Sending update command to worker A (\${workerId})\`);
-        
-        // Spawn redis-cli to send command (simple for now, assuming redis-cli is available or we can use fetch)
-        // Wait, fetch to redis is not possible. We should use a small node script or just ioredis
-        const Redis = require('ioredis');
-        const redis = new Redis(env.REDIS_URL);
-        
-        redis.publish(\`traffic:worker:\${workerId}:commands\`, JSON.stringify({
-          type: 'update',
-          targetVersion: '2.0.2-test'
-        })).then(() => redis.quit());
-        
-      }, 5000);
+  async function ready(version, exclude) {
+    return remember(await until(async () => {
+      const worker = (await workers()).find(value => value.version === version && value.workerId !== exclude);
+      if (!worker) return false;
+      const subscribers = await redis.pubsub('NUMSUB', `traffic:worker:${worker.workerId}:commands`);
+      return Number(subscribers[1]) > 0 ? worker : false;
+    }, `worker ${version}`));
+  }
+  try {
+    const pkg = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
+    const versionA = pkg.version;
+    const parts = versionA.split('.').map(Number); assert.ok(parts.every(Number.isInteger));
+    const versionB = `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
+    await fs.copyFile(path.join(root, 'dist/workers', `trafficbot-worker-${artifactKey}${ext}`), running);
+    await fs.chmod(running, 0o755);
+    // Compile genuinely different versions. Renaming the same binary cannot prove an update succeeded.
+    const source = path.join(directory, 'source'); await fs.mkdir(source);
+    await fs.cp(path.join(root, 'src'), path.join(source, 'src'), { recursive: true });
+    await fs.writeFile(path.join(source, 'package.json'), JSON.stringify({ ...pkg, version: versionB }));
+    await fs.symlink(path.join(root, 'node_modules'), path.join(source, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
+    const compiled = spawnSync('bun', ['build', '--compile', './src/main.ts', '--outfile', next], { cwd: source, stdio: 'inherit', timeout: 120000, shell: process.platform === 'win32' });
+    assert.equal(compiled.status, 0, 'compile next-version fixture');
+    if (process.platform === 'darwin') {
+      assert.equal(spawnSync('codesign', ['--force', '--sign', '-', running]).status, 0);
+      assert.equal(spawnSync('codesign', ['--force', '--sign', '-', next]).status, 0);
     }
-  });
-  
-  worker.stderr.on('data', d => process.stderr.write(d));
-
-  worker.on('exit', (code) => {
-    console.log(\`[test] Worker A process exited with code \${code}\`);
-    
-    // In POSIX, replacer runs and starts the new binary.
-    // In Windows, powershell script does the same.
-    // Wait a few seconds for the new process to start and then trigger rollback.
-    setTimeout(async () => {
-      // Find new worker process.
-      // We can just broadcast rollback to all workers for test purposes, or use ioredis to find keys.
-      const Redis = require('ioredis');
-      const redis = new Redis(env.REDIS_URL);
-      const keys = await redis.keys('traffic:worker:*');
-      const stateKeys = keys.filter(k => !k.includes('commands'));
-      let newWorkerId = '';
-      for (const k of stateKeys) {
-         const data = await redis.get(k);
-         if (data && data.includes('2.0.2-test')) {
-            newWorkerId = k.split(':')[2];
-            break;
-         }
-      }
-      
-      console.log(\`[test] Found new worker ID: \${newWorkerId}\`);
-      if (!newWorkerId) {
-         console.error('Failed to find new worker');
-         process.exit(1);
-      }
-      
-      const prevExists = fs.existsSync(binAPath + '.previous.json');
-      console.log(\`[test] .previous exists: \${prevExists}\`);
-      if (!prevExists) {
-        console.error('Rollback metadata missing');
-        process.exit(1);
-      }
-      
-      console.log(\`[test] Sending rollback command\`);
-      await redis.publish(\`traffic:worker:\${newWorkerId}:commands\`, JSON.stringify({ type: 'rollback' }));
-      
-      setTimeout(async () => {
-         const finalKeys = await redis.keys('traffic:worker:*');
-         const finalStateKeys = finalKeys.filter(k => !k.includes('commands'));
-         let finalWorkerId = '';
-         for (const k of finalStateKeys) {
-            const data = await redis.get(k);
-            // After rollback it should be 2.0.1 again
-            if (data && data.includes('2.0.1')) {
-               finalWorkerId = k.split(':')[2];
-               break;
-            }
-         }
-         console.log(\`[test] Rollback final worker ID: \${finalWorkerId}\`);
-         if (!finalWorkerId) {
-            console.error('Failed to find rolled-back worker');
-            process.exit(1);
-         }
-         
-         console.log('[test] SUCCESS');
-         process.exit(0);
-      }, 10000);
-      
-    }, 10000);
-  });
-});
+    const bytes = await fs.readFile(next);
+    const manifest = JSON.stringify({ version: versionB, protocolVersion: 1, releasedAt: new Date().toISOString(), artifacts: { [artifactKey]: { file: path.basename(next), size: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex'), platform, arch: process.arch } } });
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1', publicKeyEncoding: { type: 'spki', format: 'pem' }, privateKeyEncoding: { type: 'pkcs8', format: 'pem' } });
+    const signature = crypto.sign('SHA256', Buffer.from(manifest), privateKey).toString('base64');
+    server = createServer((req, res) => {
+      if (req.url === '/manifest.json') res.end(manifest);
+      else if (req.url === '/manifest.json.sig') res.end(signature);
+      else if (req.url === '/' + path.basename(next)) createReadStream(next).pipe(res);
+      else { res.writeHead(404); res.end(); }
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const probe = createServer(); await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve));
+    const healthPort = probe.address().port; await new Promise(resolve => probe.close(resolve));
+    const env = { ...process.env, BOT_ROLE: 'worker', WORKER_PLATFORM: platform, REDIS_URL: process.env.REDIS_TEST_URL, CONTROL_API_ENABLED: 'false', HEALTH_PORT: String(healthPort), URL: '', DEFAULT_URL: 'http://127.0.0.1/', EXTERNAL_IP_CHECK: 'false', TRAFFICBOT_WORKER_CONFIG_DIR: path.join(directory, 'config'), SESSIONS_DATA_DIR: path.join(directory, 'sessions'), TRAFFICBOT_UPDATE_BASE_URL: `http://127.0.0.1:${server.address().port}`, TRAFFICBOT_ALLOW_HTTP_UPDATE: '1', RELEASE_PUBLIC_KEY: publicKey };
+    child = spawn(running, [], { cwd: directory, env, stdio: ['ignore', 'pipe', 'pipe'] });
+    child.on('error', error => { output += error.message; });
+    child.stdout.on('data', chunk => { output = (output + chunk).slice(-12000); });
+    child.stderr.on('data', chunk => { output = (output + chunk).slice(-12000); });
+    pids.add(child.pid);
+    const initial = await ready(versionA);
+    await redis.publish(`traffic:worker:${initial.workerId}:commands`, JSON.stringify({ type: 'update' }));
+    const updated = await ready(versionB, initial.workerId);
+    const rollback = JSON.parse(await fs.readFile(running + '.previous.json', 'utf8'));
+    assert.equal(rollback.version, versionA);
+    await redis.publish(`traffic:worker:${updated.workerId}:commands`, JSON.stringify({ type: 'rollback' }));
+    const restored = await ready(versionA, initial.workerId);
+    assert.notEqual(restored.workerId, updated.workerId);
+    console.log(`PASS: signed ${platform} update ${versionA} -> ${versionB} -> rollback ${versionA}`);
+  } catch (error) { console.error(output); throw error; }
+  finally {
+    for (const worker of await workers().catch(() => [])) remember(worker);
+    for (const pid of pids) { if (pid) { try { process.kill(pid, 'SIGTERM'); } catch {} } }
+    await pause(2000);
+    server?.closeAllConnections(); await new Promise(resolve => server ? server.close(resolve) : resolve());
+    await redis.flushdb(); redis.disconnect();
+    await fs.rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  }
+}
+main().catch(error => { console.error(error.message); process.exitCode = 1; });
