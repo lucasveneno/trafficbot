@@ -39,7 +39,9 @@ Windows/Linux installers and macOS x64 need execution on their native hosts; rel
 
 Frontend lint has no error diagnostics but still reports advisory React/style warnings. Vite reports a roughly 748 kB main chunk; route splitting remains a performance improvement.
 
-Multi-target campaigns, campaign-wide concurrency and selected proxy pools are now implemented; see [campaign execution](campaign-execution.md). The remaining product scope includes complete live navigation/page-visit telemetry, centralized remote-worker log ingestion, arbitrary remote-controller configuration and full accessibility verification. Existing log search only finds events available to the controller and is not a complete remote-worker log archive.
+Multi-target campaigns, campaign-wide concurrency and selected proxy pools are now implemented; see [campaign execution](../campaign-execution.md). The remaining product scope includes complete live navigation/page-visit telemetry, centralized remote-worker log ingestion, arbitrary remote-controller configuration and full accessibility verification. Existing log search only finds events available to the controller and is not a complete remote-worker log archive.
+
+Historical note: subsequent work added worker execution timelines and curated remote-worker events. See the current [session visibility guide](../session-visibility.md) for those capabilities and retention limits.
 
 ## Development
 

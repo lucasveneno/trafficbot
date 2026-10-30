@@ -2,6 +2,8 @@
 
 Browser session automation with persistent, internally consistent browser profiles.
 
+See the [documentation index](docs/README.md) for current guides, repository layout and historical reports. Native development instructions are in the [desktop README](apps/desktop/README.md).
+
 ## Desktop campaign management
 
 Install dependencies with `npm ci` and `npm ci --prefix apps/desktop`, then use `npm run dev:desktop` (requires Rust and the Tauri platform prerequisites). Start Redis and execution workers separately. Campaigns support multiple targets, shared concurrency limits, finite runs, pause/resume and selected proxy pools. See [campaign execution](docs/campaign-execution.md) for behavior, limits and verification commands.

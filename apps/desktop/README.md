@@ -1,32 +1,36 @@
-# React + TypeScript + Vite
+# Trafficbot desktop
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React/TypeScript UI with a Tauri shell. It manages an authenticated local controller; separate workers execute browser sessions. Opening `index.html` directly does not run the application.
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+From the repository root:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+npm ci
+npm ci --prefix apps/desktop
+npm run dev:desktop
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Use Node 22+, Rust and your host's Tauri prerequisites. Start Redis and workers separately; the controller does not start a worker or enqueue sessions automatically. `npm --prefix apps/desktop run dev` runs only the frontend preview, without the native engine bridge.
+
+## Checks and packaging
+
+```sh
+npm --prefix apps/desktop run build
+npm --prefix apps/desktop test
+npm --prefix apps/desktop run lint
+npm run build:desktop
+```
+
+Packaging requires Bun to compile the controller sidecar. Bundles are written under `src-tauri/target/release/bundle/`, which is ignored. Production updates require signing configuration; local unsigned builds do not verify notarization or Windows/Linux behavior.
+
+## Features and architecture
+
+- Dashboard and worker/queue health.
+- Campaign targets, shared concurrency, proxy selection, pause/resume and finite runs.
+- Session timelines, attempt history, linked worker events and failure screenshots.
+- Profiles, proxies, schedules, settings and fleet update controls.
+- Rust lifecycle/ownership handling in `src-tauri/src/engine.rs`; frontend API adapter in `src/services/api.ts`.
+
+See the [documentation index](../../docs/README.md), [campaign guide](../../docs/campaign-execution.md), [session diagnostics](../../docs/session-visibility.md) and [release signing](../../docs/release-signing.md).

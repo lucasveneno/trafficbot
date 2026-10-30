@@ -7,9 +7,16 @@ dist/
 # Session data (Persistent browser profiles)
 sessions/
 
-# Configuration
+# Configuration and private local files
 .env
-.env.test
+.env.*
+!.env.example
+.local/
+/updater
+/updater.pub
+*.key
+*.p12
+*.pfx
 
 # Logs
 logs/
@@ -22,11 +29,11 @@ yarn-debug.log*
 Thumbs.db
 .idea/
 .vscode/
-
-
-
-.env.*
-!.env.example
+*.tsbuildinfo
+/trafficbot-worker
+/trafficbot-worker-*
+/test-puppeteer-dir*/
+**/*_HEAD.ts
 coverage/
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
@@ -34,5 +41,3 @@ apps/desktop/src-tauri/engine/*
 !apps/desktop/src-tauri/engine/.gitkeep
 apps/desktop/src-tauri/icons/android/
 apps/desktop/src-tauri/icons/ios/
-
-AUDIT.*

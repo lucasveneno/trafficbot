@@ -67,7 +67,7 @@ export class AndroidChromeDriver implements BrowserEngine {
         defaultViewport: null // Use actual device viewport
       });
       this.browser.on('disconnected', () => {
-        require('../logging/logger').logger.warn('Android Chrome DevTools disconnected', { serial: this.deviceSerial });
+        require('../../logging/logger').logger.warn('Android Chrome DevTools disconnected', { serial: this.deviceSerial });
         require('../../monitoring/MetricsService').MetricsService.getInstance().trackAdbDisconnect(this.deviceSerial);
         this.cleanupForwarding();
       });

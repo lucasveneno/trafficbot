@@ -10,3 +10,17 @@ logs
 .DS_Store
 coverage
 *.png
+.local
+updater
+updater.pub
+*.key
+*.p12
+*.pfx
+*.tsbuildinfo
+trafficbot-worker*
+test-puppeteer-dir*
+apps/desktop/node_modules
+apps/desktop/dist
+apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
+apps/desktop/src-tauri/engine

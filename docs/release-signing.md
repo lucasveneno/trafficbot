@@ -6,11 +6,13 @@ Trafficbot leverages multiple cryptographic keys to ensure artifact authenticity
 
 The Desktop client verifies updates using a Minisign Ed25519 key pair embedded in `tauri.conf.json`.
 
-- **Public Key:** `dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY2NzRDNzBCMjhFQ0ExMzEKUldBNkVSYnpDa3hFQW0wd055aU5GMDkyOUpwWkY0V2R6eFltWUd2QkloYnZqZEo3aTZsN1pSUWUK` (found in `tauri.conf.json`)
+- **Public Key:** The authoritative value is `plugins.updater.pubkey` in [`tauri.conf.json`](../apps/desktop/src-tauri/tauri.conf.json). Avoid copying the key into documentation, where it can become stale.
 - **Private Key (`TAURI_SIGNING_PRIVATE_KEY`):** Must be provided securely to GitHub Actions.
 - **Password (`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`):** Unlocks the private key for signing during CI `tauri build`.
 
 This key is **only** responsible for signing the `.tar.gz` and `.zip` archives of the Desktop application itself, preventing man-in-the-middle attacks on the Desktop update channel.
+
+For local signing, store keys under the ignored `.local/signing/` directory, with directory permissions `700` and private-key permissions `600`. Existing local `updater` and `updater.pub` files have been relocated there. Never commit or upload the private key; GitHub Actions receives it through secrets. A public key in configuration does not establish that CI signing secrets or OS notarization are configured.
 
 ## 2. Worker Fleet ECDSA Keys
 
