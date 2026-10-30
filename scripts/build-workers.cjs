@@ -15,6 +15,12 @@ const targets = [
   { platform: 'macos', arch: 'arm64', target: 'bun-darwin-arm64', ext: '' }
 ];
 
+const hostPlatform = process.platform === 'darwin' ? 'macos' : process.platform === 'win32' ? 'windows' : 'linux';
+const hostOnly = process.argv.includes('--host');
+const activeTargets = hostOnly
+  ? targets.filter(t => t.platform === hostPlatform && t.arch === process.arch)
+  : targets;
+
 const manifest = {
   version: require('../package.json').version,
   protocolVersion: 1, // Keep synchronized with Protocol.ts PROTOCOL_VERSION
@@ -22,12 +28,13 @@ const manifest = {
   artifacts: {}
 };
 
-for (const t of targets) {
+for (const t of activeTargets) {
   const binName = `trafficbot-worker-${t.platform}-${t.arch}${t.ext}`;
   const outFile = path.join(outDir, binName);
+  const relOutFile = path.relative(root, outFile);
   
   console.log(`Compiling worker for ${t.target}...`);
-  const res = spawnSync('bun', ['build', '--compile', `--target=${t.target}`, './src/main.ts', '--outfile', outFile], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' });
+  const res = spawnSync('bun', ['build', '--compile', `--target=${t.target}`, './src/main.ts', '--outfile', relOutFile], { cwd: root, stdio: 'inherit' });
   
   if (res.status !== 0) {
     console.error(`Failed to compile ${binName}`);

@@ -71,10 +71,24 @@ export class AtomicReplacer {
       throw new UpdateError(UpdateErrorCode.UPDATE_REPLACE_FAILED, `Failed to create backup: ${e}`);
     }
 
-    // Move new → current (atomic rename)
+    // Move new → current (atomic rename, or stage in target dir if cross-device)
     try {
       await fs.rename(newBin, currentBin);
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.code === 'EXDEV') {
+        const staged = `${currentBin}.new`;
+        try {
+          await fs.copyFile(newBin, staged);
+          await fs.chmod(staged, 0o755);
+          await fs.rename(staged, currentBin);
+          await fs.rm(newBin, { force: true });
+          return;
+        } catch (copyErr) {
+          await fs.rm(staged, { force: true }).catch(() => {});
+          try { await fs.rename(previousBin, currentBin); } catch { /* best effort */ }
+          throw new UpdateError(UpdateErrorCode.UPDATE_REPLACE_FAILED, `Binary replacement failed across devices, previous restored: ${copyErr}`);
+        }
+      }
       // Attempt restore
       try { await fs.rename(previousBin, currentBin); } catch { /* best effort */ }
       throw new UpdateError(UpdateErrorCode.UPDATE_REPLACE_FAILED, `Binary replacement failed, previous restored: ${e}`);
@@ -96,9 +110,9 @@ export class AtomicReplacer {
     // PowerShell single-quoted strings escape single quotes by doubling them.
     const psEscape = (str: string) => str.replace(/'/g, "''");
     const restartArgs = workerArgs.map(a => `'${psEscape(a)}'`).join(', ');
-    const scriptPath = path.join(os.tmpdir(), `trafficbot-update-${Date.now()}.ps1`);
+    const scriptPath = path.join(os.tmpdir(), `trafficbot-update-${pid}-${Date.now()}.ps1`);
 
-    // PowerShell script: narrowly scoped — rename only, no arbitrary execution
+    // PowerShell script: narrowly scoped — rename with NTFS lock retry, then relaunch
     const script = `
 $ErrorActionPreference = 'Stop'
 $targetPid = ${pid}
@@ -112,13 +126,29 @@ if (Get-Process -Id $targetPid -ErrorAction SilentlyContinue) {
   Write-Error "Worker process did not exit within timeout"
   exit 1
 }
-# Rename old → previous, new → current
-Move-Item -LiteralPath '${psEscape(currentBin)}' -Destination '${psEscape(previousBin)}' -Force
-Move-Item -LiteralPath '${psEscape(newBin)}' -Destination '${psEscape(currentBin)}' -Force
+# Rename old → previous, new → current (retry briefly while NTFS releases image lock)
+$swapped = $false
+for ($i = 0; $i -lt 40; $i++) {
+  try {
+    Move-Item -LiteralPath '${psEscape(currentBin)}' -Destination '${psEscape(previousBin)}' -Force
+    Move-Item -LiteralPath '${psEscape(newBin)}' -Destination '${psEscape(currentBin)}' -Force
+    $swapped = $true
+    break
+  } catch {
+    if ((Test-Path -LiteralPath '${psEscape(previousBin)}') -and -not (Test-Path -LiteralPath '${psEscape(currentBin)}')) {
+      Move-Item -LiteralPath '${psEscape(previousBin)}' -Destination '${psEscape(currentBin)}' -Force -ErrorAction SilentlyContinue
+    }
+    Start-Sleep -Milliseconds 250
+  }
+}
+if (-not $swapped) {
+  Write-Error "Failed to replace worker binary after process exit"
+  exit 1
+}
 # Restart worker
-Start-Process -FilePath '${psEscape(currentBin)}' ${restartArgs ? `-ArgumentList ${restartArgs}` : ''}
+Start-Process -FilePath '${psEscape(currentBin)}' -WindowStyle Hidden ${restartArgs ? `-ArgumentList ${restartArgs}` : ''}
 # Cleanup self
-Remove-Item -Path '${psEscape(scriptPath)}' -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath '${psEscape(scriptPath)}' -Force -ErrorAction SilentlyContinue
 `;
     await fs.writeFile(scriptPath, script, 'utf8');
 

@@ -55,7 +55,8 @@ async function main() {
     await fs.cp(path.join(root, 'src'), path.join(source, 'src'), { recursive: true });
     await fs.writeFile(path.join(source, 'package.json'), JSON.stringify({ ...pkg, version: versionB }));
     await fs.symlink(path.join(root, 'node_modules'), path.join(source, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
-    const compiled = spawnSync('bun', ['build', '--compile', './src/main.ts', '--outfile', next], { cwd: source, stdio: 'inherit', timeout: 120000, shell: process.platform === 'win32' });
+    const relNext = path.join('..', path.basename(next));
+    const compiled = spawnSync('bun', ['build', '--compile', './src/main.ts', '--outfile', relNext], { cwd: source, stdio: 'inherit', timeout: 120000 });
     assert.equal(compiled.status, 0, 'compile next-version fixture');
     if (process.platform === 'darwin') {
       assert.equal(spawnSync('codesign', ['--force', '--sign', '-', running]).status, 0);
@@ -92,10 +93,18 @@ async function main() {
   } catch (error) { console.error(output); throw error; }
   finally {
     for (const worker of await workers().catch(() => [])) remember(worker);
-    for (const pid of pids) { if (pid) { try { process.kill(pid, 'SIGTERM'); } catch {} } }
+    for (const pid of pids) {
+      if (!pid) continue;
+      if (process.platform === 'win32') {
+        try { spawnSync('taskkill', ['/F', '/T', '/PID', String(pid)], { stdio: 'ignore' }); } catch {}
+      } else {
+        try { process.kill(pid, 'SIGTERM'); } catch {}
+      }
+    }
     await pause(2000);
     server?.closeAllConnections(); await new Promise(resolve => server ? server.close(resolve) : resolve());
     await redis.flushdb(); redis.disconnect();
+    await fs.unlink(path.join(directory, 'source', 'node_modules')).catch(() => {});
     await fs.rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }
 }

@@ -6,33 +6,41 @@ on:
       - 'v*.*.*'
   workflow_dispatch:
 
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-mac:
+    name: Build macOS Desktop
     runs-on: macos-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-          
+          cache: npm
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-          
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin, x86_64-apple-darwin
 
       - name: Install dependencies
-        run: npm ci
-        
-      - name: Build Desktop (Mac)
-        # Desktop has its own lockfile and dependency tree.
+        run: |
+          npm ci
+          npm ci --prefix apps/desktop
+
+      - name: Build Desktop (macOS)
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -42,51 +50,54 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: npm ci --prefix apps/desktop && npm run build:desktop
-        
-      - name: Upload Mac Artifacts
+        run: npm run build:desktop
+
+      - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Trafficbot-macOS
           path: |
-            apps/desktop/src-tauri/target/release/bundle/macos/Trafficbot.app
             apps/desktop/src-tauri/target/release/bundle/macos/*.tar.gz
             apps/desktop/src-tauri/target/release/bundle/macos/*.tar.gz.sig
             apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
 
   build-windows:
+    name: Build Windows Desktop
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-          
+          cache: npm
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-          
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
 
       - name: Install dependencies
-        run: npm ci
-        
+        run: |
+          npm ci
+          npm ci --prefix apps/desktop
+
       - name: Build Desktop (Windows)
         env:
-          # Required for Windows Code Signing
           WINDOWS_SIGNING_CERT: ${{ secrets.WINDOWS_SIGNING_CERT }}
           WINDOWS_SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PASSWORD }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: npm ci --prefix apps/desktop && npm run build:desktop
-        
+        run: npm run build:desktop
+
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -98,22 +109,41 @@ jobs:
             apps/desktop/src-tauri/target/release/bundle/msi/*.msi
 
   build-linux:
+    name: Build Linux Desktop
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - uses: oven-sh/setup-bun@v1
-      - uses: dtolnay/rust-toolchain@stable
+          cache: npm
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2t64
-      - name: Build Linux desktop
+
+      - name: Install dependencies and build Linux desktop
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: npm ci && npm ci --prefix apps/desktop && npm run build:desktop
-      - uses: actions/upload-artifact@v4
+        run: |
+          npm ci
+          npm ci --prefix apps/desktop
+          npm run build:desktop
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: Trafficbot-Linux
           path: |
@@ -121,28 +151,37 @@ jobs:
             apps/desktop/src-tauri/target/release/bundle/appimage/*
 
   build-workers:
+    name: Build & Sign Worker Binaries
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          
+          cache: npm
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build Workers
         run: node scripts/build-workers.cjs
-        
-      - name: Sign Worker Manifest
+
+      - name: Sign and verify Worker Manifest
         env:
           RELEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PRIVATE_KEY }}
           ENFORCE_PRODUCTION_SIGNING: 'true'
-        run: node scripts/sign-release.cjs
+        run: |
+          node scripts/sign-release.cjs
+          node scripts/release-verify.cjs
 
       - name: Upload Worker Binaries
         uses: actions/upload-artifact@v4
@@ -151,38 +190,37 @@ jobs:
           path: dist/workers/*
 
   publish-release:
+    name: Publish Release Assets
     needs: [build-mac, build-windows, build-linux, build-workers]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Download Mac Artifacts
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download Release Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Trafficbot-macOS
-          path: dist/release-assets
-      - name: Download Linux Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Trafficbot-Linux
-          path: dist/release-assets
-      - name: Download Windows Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Trafficbot-Windows
-          path: dist/release-assets
-      - name: Download Worker Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Trafficbot-Workers
-          path: dist/release-assets
+          path: dist/downloaded-assets
+          merge-multiple: true
+
+      - name: Flatten Release Assets
+        run: |
+          mkdir -p dist/release-assets
+          find dist/downloaded-assets -type f -exec mv -f {} dist/release-assets/ \;
 
       - name: Generate SBOM
         run: node scripts/generate-sbom.cjs

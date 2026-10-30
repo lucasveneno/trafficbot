@@ -8,10 +8,7 @@ function run(cmd, args) {
   }
 }
 
-console.log('Building all workers...');
-run('npm', ['run', 'build:worker:all']);
-
-console.log('Generating manifest and signing...');
+console.log('Generating worker binaries, manifest, and signing...');
 run('node', ['scripts/build-workers.cjs']);
 run('node', ['scripts/sign-release.cjs']);
 

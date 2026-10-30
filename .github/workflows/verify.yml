@@ -1,4 +1,3 @@
-
 name: Verify
 
 on:
@@ -11,7 +10,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  linux:
+    name: Linux (Backend, Desktop, Docker & E2E)
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -41,54 +41,64 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install backend and desktop dependencies
+        run: |
+          npm ci
+          npm ci --prefix apps/desktop
 
       - name: Verify Redis connectivity
         run: |
           docker ps -a
           docker exec ${{ job.services.redis.id }} redis-cli ping
 
-      - name: Check generated artifacts
-        run: npm run check:artifacts
+      - name: Check artifacts, version sync, and updater script syntax
+        run: |
+          npm run check:artifacts
+          npm run version:check
+          node --check scripts/test-updater.cjs
 
-      - name: Check updater test syntax
-        run: node --check scripts/test-updater.cjs
+      - name: Build and lint backend
+        run: |
+          npm run build
+          npm run lint
 
-      - name: Build project
-        run: npm run build
-
-      - name: Run lint
-        run: npm run lint
-
-      - name: Run unit tests
+      - name: Run backend unit tests
         run: npm test -- --runInBand
 
-      - name: Run Redis integration tests
-        run: npm run test:redis
-      - name: Verify campaign concurrency and dispatch recovery
-        run: REDIS_TEST_URL=redis://127.0.0.1:16389/3 npm run test:campaigns
+      - name: Lint, test, and build desktop UI
+        run: |
+          npm --prefix apps/desktop run lint
+          npm --prefix apps/desktop test
+          npm --prefix apps/desktop run build
 
-      - name: Setup Bun for E2E
+      - name: Run Redis, campaign, and control integration tests
+        run: |
+          npm run test:redis
+          REDIS_TEST_URL=redis://127.0.0.1:16389/3 npm run test:campaigns
+          REDIS_TEST_URL=redis://127.0.0.1:16389/5 npm run test:control
+
+      - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
-      - name: Build Linux Worker Binary
-        run: node scripts/build-workers.cjs
+      - name: Build and verify Linux worker binary
+        run: |
+          node scripts/build-workers.cjs --host
+          node scripts/sign-release.cjs
+          node scripts/release-verify.cjs
 
       - name: Run Linux Updater E2E Test
         env:
           REDIS_TEST_URL: redis://127.0.0.1:16389/4
         run: node scripts/test-updater.cjs
 
-      # Build the application using its production Dockerfile.
-      - name: Build Docker image
+      - name: Build production Docker image
         run: docker build --platform linux/amd64 -t trafficbot:ci .
 
       # The Docker runtime supplies a supported Chromium sandbox.
       # Never disable the Chromium sandbox for CI.
-      - name: Run browser and lifecycle tests
+      - name: Run browser and lifecycle integration tests
         run: |
           docker run --rm --init \
             --cap-add=SYS_ADMIN \
@@ -103,9 +113,8 @@ jobs:
               su node -s /bin/sh -c "npm run test:browser && npm run test:lifecycle"
             '
 
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --json > audit-runtime.json
-        continue-on-error: true
+      - name: Audit production dependencies (advisory report)
+        run: npm audit --omit=dev --json > audit-runtime.json || true
 
       - name: Upload dependency audit
         uses: actions/upload-artifact@v4
@@ -114,7 +123,8 @@ jobs:
           name: runtime-dependency-audit
           path: audit-runtime.json
 
-  windows-verify:
+  windows:
+    name: Windows (Unit & Updater E2E)
     runs-on: windows-latest
     timeout-minutes: 20
     env:
@@ -151,15 +161,16 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Build Windows Worker Binary
-        run: node scripts/build-workers.cjs
+      - name: Build Windows worker binary
+        run: node scripts/build-workers.cjs --host
 
       - name: Run Windows Updater E2E Test
         env:
           REDIS_TEST_URL: redis://127.0.0.1:6379/4
         run: node scripts/test-updater.cjs
 
-  macos-verify:
+  macos:
+    name: macOS (Unit & Updater E2E)
     runs-on: macos-latest
     timeout-minutes: 20
     env:
@@ -180,19 +191,22 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
       - name: Start Redis on macOS
         run: |
           brew install redis
           redis-server --bind 127.0.0.1 --port 16389 --save '' --appendonly no --daemonize yes
           node scripts/wait-for-redis.cjs
 
-      - name: Build macOS Worker Binary
-        run: node scripts/build-workers.cjs
+      - name: Run unit tests
+        run: npm test -- --runInBand
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Build macOS worker binary
+        run: node scripts/build-workers.cjs --host
 
       - name: Run macOS Updater E2E Test
         env:

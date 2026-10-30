@@ -32,7 +32,8 @@ if (pubKey) {
   console.warn('Skipping signature validation (RELEASE_PUBLIC_KEY not set)');
 }
 
-for (const [key, asset] of Object.entries(manifest.assets)) {
+const artifacts = manifest.artifacts || manifest.assets || {};
+for (const [, asset] of Object.entries(artifacts)) {
   const assetPath = path.join(root, asset.file);
   if (!fs.existsSync(assetPath)) {
     console.error(`Asset missing: ${asset.file}`);

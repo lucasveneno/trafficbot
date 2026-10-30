@@ -4,7 +4,15 @@ import path from 'path';
 import crypto from 'node:crypto';
 
 describe('ReleaseManager', () => {
+  const root = path.resolve(__dirname, '../../..');
+  const outDir = path.join(root, 'dist/workers');
+  let origManifest: string | null = null;
+  let origSig: string | null = null;
+
   beforeAll(async () => {
+    origManifest = await fs.readFile(path.join(outDir, 'manifest.json'), 'utf8').catch(() => null);
+    origSig = await fs.readFile(path.join(outDir, 'manifest.json.sig'), 'utf8').catch(() => null);
+
     // Generate a temporary keypair for testing
     const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', {
       namedCurve: 'prime256v1',
@@ -15,8 +23,6 @@ describe('ReleaseManager', () => {
     // @ts-ignore
     ReleaseManager.PUBLIC_KEY = publicKey;
 
-    const root = path.resolve(__dirname, '../../..');
-    const outDir = path.join(root, 'dist/workers');
     await fs.mkdir(outDir, { recursive: true });
     
     const manifestStr = JSON.stringify({
@@ -60,5 +66,12 @@ describe('ReleaseManager', () => {
     await ReleaseManager.refresh();
     const meta = ReleaseManager.getMetadata('2.0.0');
     expect(meta?.signatureStatus).toBe('invalid');
+  });
+
+  afterAll(async () => {
+    if (origManifest !== null) await fs.writeFile(path.join(outDir, 'manifest.json'), origManifest);
+    else await fs.rm(path.join(outDir, 'manifest.json'), { force: true });
+    if (origSig !== null) await fs.writeFile(path.join(outDir, 'manifest.json.sig'), origSig);
+    else await fs.rm(path.join(outDir, 'manifest.json.sig'), { force: true });
   });
 });

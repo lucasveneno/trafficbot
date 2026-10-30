@@ -1,3 +1,11 @@
+## [2.1.0] - 2026-10-30
+
+- **Desktop Control Center:** Add Tauri + React desktop management application (`apps/desktop`) with authenticated loopback Control API, live WebSocket telemetry, and managed controller sidecar.
+- **Durable Campaigns & Scheduling:** Add Redis-backed campaign execution, shared campaign/proxy capacity leases, circuit breakers, proxy pool allocator, and cron schedule runner.
+- **Worker Session Timelines & Diagnostics:** Add structured session timelines, failure classification, bounded screenshot/DOM diagnostics, and real-time log streaming.
+- **Fleet Enrollment & Signed Self-Updates:** Add worker enrollment tokens, ECDSA-signed release manifests, atomic binary replacement, and automatic rollback across Linux, Windows, and macOS.
+- **CI & Packaging Hardening:** Add cross-platform Linux, Windows, and macOS verification workflows, desktop test gates, and clean npm package file filtering.
+
 ## [2.0.1] - 2026-09-26
 
 - **Publishing & Metadata:** Scope package to `@lucasveneno/trafficbot`, add Github repository link, and set `files` to `dist` for public npm registry release.

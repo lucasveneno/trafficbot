@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -11,39 +16,56 @@ permissions:
 
 jobs:
   release-please:
+    name: Release Please & npm Publish
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      # 1. Run Release Please to create PRs or tags
-      - uses: googleapis/release-please-action@v4
+      - name: Run Release Please
+        if: github.event_name == 'push'
+        uses: googleapis/release-please-action@v4
         id: release
         with:
           release-type: node
+          extra-files: |
+            apps/desktop/package.json
+            apps/desktop/src-tauri/tauri.conf.json
+            apps/desktop/src-tauri/Cargo.toml
 
-      # 2. If Release Please just created a release (because you merged the PR), 
-      # check out the code to publish it.
       - name: Checkout repository
-        if: ${{ steps.release.outputs.release_created }}
         uses: actions/checkout@v4
 
-      # 3. Setup Node to publish
       - name: Set up Node.js
-        if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org/'
           cache: npm
 
+      - name: Check if current package version needs publishing
+        id: check_npm
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "@lucasveneno/trafficbot@$VERSION" version >/dev/null 2>&1; then
+            echo "Already published @lucasveneno/trafficbot@$VERSION on npm."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version $VERSION is not yet on npm; preparing publish."
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install dependencies
-        if: ${{ steps.release.outputs.release_created }}
+        if: steps.release.outputs.release_created == 'true' || steps.check_npm.outputs.should_publish == 'true'
         run: npm ci
 
-      - name: Build project
-        if: ${{ steps.release.outputs.release_created }}
-        run: npm run build
+      - name: Verify version synchronization and build
+        if: steps.release.outputs.release_created == 'true' || steps.check_npm.outputs.should_publish == 'true'
+        run: |
+          npm run version:check
+          npm run build
 
       - name: Publish to npm
-        if: ${{ steps.release.outputs.release_created }}
+        if: steps.release.outputs.release_created == 'true' || steps.check_npm.outputs.should_publish == 'true'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

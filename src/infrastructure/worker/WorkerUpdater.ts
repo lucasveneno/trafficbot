@@ -296,6 +296,11 @@ export class WorkerUpdater {
       logger.info(`[update:${updateId}] Binary replaced. Initiating restart...`);
       emit('restarting', { targetVersion });
 
+      if (releaseLock) {
+        await releaseLock().catch(() => {});
+        releaseLock = null;
+      }
+
       if (os.platform() === 'win32') {
         // replaceWindows already spawns the restart helper and we exit below
         // (the helper was already called inside AtomicReplacer.replace on Windows)
@@ -353,6 +358,10 @@ export class WorkerUpdater {
       await AtomicReplacer.rollback(currentBin);
 
       logger.info(`[rollback:${updateId}] Rollback complete. Restarting...`);
+      if (releaseLock) {
+        await releaseLock().catch(() => {});
+        releaseLock = null;
+      }
       if (os.platform() === 'win32') process.exit(0); // The replacement helper owns the restart.
       await restartProcess(workerId);
 

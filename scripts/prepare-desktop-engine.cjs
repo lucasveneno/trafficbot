@@ -10,7 +10,8 @@ const binExt = process.platform === 'win32' ? '.exe' : '';
 const binName = `trafficbot-sidecar${binExt}`;
 
 console.log(`Compiling standalone Control Server for ${target}...`);
-const result = spawnSync('bun', ['build', '--compile', `--target=${target}`, './src/controller.ts', '--outfile', path.join(destination, binName)], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' });
+const relOutFile = path.relative(root, path.join(destination, binName));
+const result = spawnSync('bun', ['build', '--compile', `--target=${target}`, './src/controller.ts', '--outfile', relOutFile], { cwd: root, stdio: 'inherit' });
 
 if (result.status !== 0) process.exit(result.status || 1);
 if (process.platform === 'darwin') {
